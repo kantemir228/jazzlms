@@ -94,6 +94,15 @@ docker compose start gamification-service
 Из строки лога возьмите traceId (второе значение в квадратных скобках: `[course-service,<traceId>,…]`).
 Поиск `{service=~".+"} |= "<traceId>"` покажет путь этого запроса через сервисы.
 
+### Результат ручных шагов (22.10.2026, чистый стенд)
+
+| Шаг | Результат |
+|---|---|
+| Redis / Mongo | `ZSCORE leaderboard:points` = 190, профиль в `gamification_db.profiles` = 190, ответ API = 190 — совпадает ✅ |
+| Повторная доставка `COURSE_COMPLETED` | Очки 190 → 190 ✅ (в логе `already processed, skipping`), лента 1 → 1 ✅ (`Duplicate event … ignored`), **писем 1 → 2 ❌** — дефект ниже |
+| gamification-service выключен | Ученик прошёл урок (200), в Kafka 1 непрочитанное событие; через 16 с после запуска очки 190 → 205 ✅. Пока сервис выключен, gateway отвечает на `/api/gamification/me` 500 — ожидалось бы 503 |
+| Трассировка | Zipkin, один traceId: api-gateway → course-service `POST /enrollments` → user-service gRPC `userExists` и `getUser` ✅. В Loki этот traceId есть только в course-service: user-service не пишет в лог при gRPC-вызовах |
+
 ## Найденные дефекты
 
 Прогоны стабильны: 10 из 11 дали одинаковые 28 красных проверок в 15 запросах.
@@ -110,6 +119,7 @@ docker compose start gamification-service
 | SEC-01 N2 | Прямой вызов сервиса с мусорным токеном `abc.def.ghi` | 401 с корректным problem+json | 401, но тело — невалидный JSON (перенос строки внутри `detail`), и в `detail` утекает внутреннее сообщение Jackson. Во всех 5 сервисах: `ServiceJwtFilter.reject` |
 | SEC-07 (N1 §1.4) | Отказ gateway без токена | 401 + `WWW-Authenticate: Bearer` + problem+json | 401 и 403 от gateway — без тела и без заголовка (`JwtAuthFilter.reject`) |
 | SEC-06 | `GET /api/nothing` без токена | 401 | 404: фильтр gateway срабатывает только для известных маршрутов. Вдобавок тело 404 не в формате problem+json |
+| E2E-7 шаг 4 (вручную) | Повторная доставка того же `COURSE_COMPLETED` (тот же eventId) | Второго письма нет | **Второе письмо отправлено.** У `NotificationService.handle` нет проверки eventId, как у analytics (`existsByEventId`) и gamification (`processed_events`) |
 
 ### Зафиксировано по факту (вопрос к требованиям, тесты зелёные)
 
@@ -123,5 +133,5 @@ docker compose start gamification-service
 ### Не покрыто автотестами
 
 - GAM-05: +20 за сданный тест — нужен тест с вопросами, это зона Ainura (E2E-6).
-- GAM-17 и E2E-7, шаги 4–6 — вручную, см. выше.
+- GAM-17 и E2E-7, шаги 4–6 — вручную, результаты выше.
 - Redis `ZCARD leaderboard:points = 0` в GAM-16 проверяется косвенно: рейтинг `top = []`.
