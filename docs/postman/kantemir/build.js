@@ -222,16 +222,26 @@ const soloLogins = folder('Kantemir · логины (только для отд�
       pm.environment.set('instructorToken', body.token);
       pm.environment.set('instructorId', body.user.id);
     }) }),
-  req('SETUP-K-03 · POST /api/users · создать ученика → 201', 'POST', `${B}/api/users`, {
+  // тот же ученик, что у Setup Astra: {{learnerUsername}} из окружения (learner_<имя>), переменную не перезаписываем
+  req('SETUP-K-03 · POST /api/users · создать ученика {{learnerUsername}} → 201', 'POST', `${B}/api/users`, {
     as: 'admin',
-    pre: js(() => { pm.environment.set('learnerPassword', 'learner123'); }),
-    json: { firstName: 'Kantemir', lastName: 'Learner', email: 'learner_k_{{runId}}@test.local',
-      username: 'learner_kantemir_{{runId}}', password: '{{learnerPassword}}', userType: 'LEARNER' },
+    pre: js(() => {
+      if (!pm.environment.get('learnerUsername')) pm.environment.set('learnerUsername', 'learner_kantemir');
+      if (!pm.environment.get('learnerPassword')) pm.environment.set('learnerPassword', 'learner123');
+      // ученик с таким логином мог остаться от упавшего прогона — удаляем, чтобы создание дало ровно 201
+      const auth = { Authorization: 'Bearer ' + pm.environment.get('adminToken') };
+      const name = pm.environment.get('learnerUsername');
+      pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/users?search=' + encodeURIComponent(name)), header: auth }, (err, res) => {
+        (err ? [] : res.json()).filter(u => u.username === name).forEach(u => pm.sendRequest({
+          url: pm.variables.replaceIn('{{baseUrl}}/api/users/' + u.id), method: 'DELETE', header: auth }, () => {}));
+      });
+    }),
+    json: { firstName: 'Kantemir', lastName: 'Learner', email: '{{learnerUsername}}@test.local',
+      username: '{{learnerUsername}}', password: '{{learnerPassword}}', userType: 'LEARNER' },
     test: js(() => {
       const user = pm.response.json();
       pm.test('Создан LEARNER', () => pm.expect(user.userType).to.eql('LEARNER'));
       pm.environment.set('learnerId', user.id);
-      pm.environment.set('learnerUsername', user.username);
     }) }),
   req('SETUP-K-04 · POST /api/auth/login · ученик → 200', 'POST', `${B}/api/auth/login`, {
     json: { username: '{{learnerUsername}}', password: '{{learnerPassword}}' },
@@ -1260,10 +1270,11 @@ const teardown = folder('Kantemir',
 
 // ======================================================================
 
-// Части для общей коллекции (docs/postman/merge.js): папки 03–06 целиком, остальное — подпапками
-// в общие 00 Setup, 07 E2E и 99 Teardown.
+// Части для общей коллекции (docs/postman/merge.js): папки 03–06 целиком, в 07 E2E и 99 Teardown — подпапкой,
+// в 00 Setup — просто запросами в конец. Подпапкой нельзя: Postman показывает и запускает подпапки
+// раньше запросов, и SETUP-K выполнился бы до Setup Astra со старым токеном ученика.
 const parts = {
-  '00': [kSetup], '03': notification, '04': analytics, '05': gamification, '06': security, '07': [e2e], '99': [teardown],
+  '00': kSetup.item, '03': notification, '04': analytics, '05': gamification, '06': security, '07': [e2e], '99': [teardown],
 };
 module.exports = { parts };
 
@@ -1280,7 +1291,7 @@ if (require.main === module) {
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
     },
     item: [
-      folder('00 Setup', 'Логины и данные для тестов.', [soloLogins, kSetup]),
+      folder('00 Setup', 'Логины и данные для тестов.', [...soloLogins.item, ...kSetup.item]),
       notification, analytics, gamification, security,
       folder('07 E2E', 'Сквозные сценарии.', [e2e]),
       folder('99 Teardown', 'Уборка после прогона.', [teardown]),

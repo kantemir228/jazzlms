@@ -161,160 +161,154 @@
           "response": []
         },
         {
-          "name": "Kantemir",
-          "description": "Что нужно моим папкам сверх общего Setup: runId, email и имя ученика, курс для тестов.",
-          "item": [
+          "name": "SETUP-K · GET /api/auth/me · email и имя ученика → 200",
+          "event": [
             {
-              "name": "SETUP-K · GET /api/auth/me · email и имя ученика → 200",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "// runId делает имена уникальными: коллекцию можно гонять сколько угодно раз подряд",
-                      "pm.environment.set('runId', Date.now().toString(36));"
-                    ]
-                  }
-                },
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "{",
-                      "// Общие проверки §1.3 чек-листа. Ожидаемый код берётся из конца имени запроса: \"… → 201\".",
-                      "// \"→ пропущен gateway\" значит: gateway не отказал сам (нет пустого 401/403), дальше решает сервис.",
-                      "const m = pm.info.requestName.match(/→\\s*(\\d{3}|пропущен gateway)\\s*$/);",
-                      "if (m) {",
-                      "  const code = pm.response.code;",
-                      "  const text = pm.response.text();",
-                      "  const ct = (pm.response.headers.get('Content-Type') || '').toLowerCase();",
-                      "  if (m[1] === 'пропущен gateway') {",
-                      "    pm.test('Gateway пропустил запрос (нет пустого 401/403 от gateway)', () =>",
-                      "      pm.expect([401, 403].includes(code) && text.length === 0, `код ${code}, тело пустое`).to.be.false);",
-                      "  } else {",
-                      "    const expected = Number(m[1]);",
-                      "    pm.test(`Код ответа ${expected}`, () => pm.response.to.have.status(expected));",
-                      "    if (expected < 300) {",
-                      "      pm.test('Ответ быстрее 1500 мс', () => pm.expect(pm.response.responseTime).to.be.below(1500));",
-                      "      pm.test('В ответе нет passwordHash', () => pm.expect(text).to.not.include('passwordHash'));",
-                      "      if (expected !== 204 && text.length && !/csv|html/.test(ct)) {",
-                      "        pm.test('Content-Type: JSON', () => pm.expect(ct).to.match(/application\\/([\\w.-]+\\+)?json/));",
-                      "      }",
-                      "    }",
-                      "    if (expected >= 400 && text.length) {",
-                      "      pm.test('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));",
-                      "      pm.test('В ошибке есть title, status, detail', () => {",
-                      "        const err = pm.response.json();",
-                      "        pm.expect(err.title, 'title').to.be.a('string');",
-                      "        pm.expect(err.status, 'status').to.eql(code);",
-                      "        pm.expect(err.detail, 'detail').to.be.a('string').and.not.empty;",
-                      "      });",
-                      "      pm.test('detail без stack trace и имён классов', () => {",
-                      "        const detail = pm.response.json().detail || '';",
-                      "        pm.expect(detail).to.not.match(/Exception|\\tat |kz\\.jazz\\.|org\\.springframework/);",
-                      "      });",
-                      "    }",
-                      "  }",
-                      "}",
-                      "}",
-                      "const me = pm.response.json();",
-                      "pm.test('Токен ученика рабочий, это LEARNER', () => pm.expect(me.userType).to.eql('LEARNER'));",
-                      "// id берём отсюда, а не из Setup: если ученик остался от упавшего прогона, Setup получает 409",
-                      "// и записывает в learnerId пустое значение, а токен (вход по логину) при этом рабочий",
-                      "if (pm.environment.get('learnerId') !== me.id) {",
-                      "  console.warn(`learnerId из Setup (${pm.environment.get('learnerId')}) не совпал с /api/auth/me, беру ${me.id}`);",
-                      "}",
-                      "pm.environment.set('learnerId', me.id);",
-                      "pm.environment.set('learnerEmail', me.email);",
-                      "pm.environment.set('learnerFirstName', me.firstName);"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{learnerToken}}"
-                  }
-                ],
-                "url": "{{baseUrl}}/api/auth/me"
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// runId делает имена уникальными: коллекцию можно гонять сколько угодно раз подряд",
+                  "pm.environment.set('runId', Date.now().toString(36));"
+                ]
               }
             },
             {
-              "name": "SETUP-K · POST /api/courses · курс для тестов → 201",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "{",
-                      "// Общие проверки §1.3 чек-листа. Ожидаемый код берётся из конца имени запроса: \"… → 201\".",
-                      "// \"→ пропущен gateway\" значит: gateway не отказал сам (нет пустого 401/403), дальше решает сервис.",
-                      "const m = pm.info.requestName.match(/→\\s*(\\d{3}|пропущен gateway)\\s*$/);",
-                      "if (m) {",
-                      "  const code = pm.response.code;",
-                      "  const text = pm.response.text();",
-                      "  const ct = (pm.response.headers.get('Content-Type') || '').toLowerCase();",
-                      "  if (m[1] === 'пропущен gateway') {",
-                      "    pm.test('Gateway пропустил запрос (нет пустого 401/403 от gateway)', () =>",
-                      "      pm.expect([401, 403].includes(code) && text.length === 0, `код ${code}, тело пустое`).to.be.false);",
-                      "  } else {",
-                      "    const expected = Number(m[1]);",
-                      "    pm.test(`Код ответа ${expected}`, () => pm.response.to.have.status(expected));",
-                      "    if (expected < 300) {",
-                      "      pm.test('Ответ быстрее 1500 мс', () => pm.expect(pm.response.responseTime).to.be.below(1500));",
-                      "      pm.test('В ответе нет passwordHash', () => pm.expect(text).to.not.include('passwordHash'));",
-                      "      if (expected !== 204 && text.length && !/csv|html/.test(ct)) {",
-                      "        pm.test('Content-Type: JSON', () => pm.expect(ct).to.match(/application\\/([\\w.-]+\\+)?json/));",
-                      "      }",
-                      "    }",
-                      "    if (expected >= 400 && text.length) {",
-                      "      pm.test('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));",
-                      "      pm.test('В ошибке есть title, status, detail', () => {",
-                      "        const err = pm.response.json();",
-                      "        pm.expect(err.title, 'title').to.be.a('string');",
-                      "        pm.expect(err.status, 'status').to.eql(code);",
-                      "        pm.expect(err.detail, 'detail').to.be.a('string').and.not.empty;",
-                      "      });",
-                      "      pm.test('detail без stack trace и имён классов', () => {",
-                      "        const detail = pm.response.json().detail || '';",
-                      "        pm.expect(detail).to.not.match(/Exception|\\tat |kz\\.jazz\\.|org\\.springframework/);",
-                      "      });",
-                      "    }",
-                      "  }",
-                      "}",
-                      "}",
-                      "pm.environment.set('courseId', pm.response.json().id);",
-                      "pm.environment.set('kCourseName', pm.response.json().name);"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{instructorToken}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": "{{baseUrl}}/api/courses",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"K course {{runId}}\",\n  \"active\": true\n}"
-                }
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "// Общие проверки §1.3 чек-листа. Ожидаемый код берётся из конца имени запроса: \"… → 201\".",
+                  "// \"→ пропущен gateway\" значит: gateway не отказал сам (нет пустого 401/403), дальше решает сервис.",
+                  "const m = pm.info.requestName.match(/→\\s*(\\d{3}|пропущен gateway)\\s*$/);",
+                  "if (m) {",
+                  "  const code = pm.response.code;",
+                  "  const text = pm.response.text();",
+                  "  const ct = (pm.response.headers.get('Content-Type') || '').toLowerCase();",
+                  "  if (m[1] === 'пропущен gateway') {",
+                  "    pm.test('Gateway пропустил запрос (нет пустого 401/403 от gateway)', () =>",
+                  "      pm.expect([401, 403].includes(code) && text.length === 0, `код ${code}, тело пустое`).to.be.false);",
+                  "  } else {",
+                  "    const expected = Number(m[1]);",
+                  "    pm.test(`Код ответа ${expected}`, () => pm.response.to.have.status(expected));",
+                  "    if (expected < 300) {",
+                  "      pm.test('Ответ быстрее 1500 мс', () => pm.expect(pm.response.responseTime).to.be.below(1500));",
+                  "      pm.test('В ответе нет passwordHash', () => pm.expect(text).to.not.include('passwordHash'));",
+                  "      if (expected !== 204 && text.length && !/csv|html/.test(ct)) {",
+                  "        pm.test('Content-Type: JSON', () => pm.expect(ct).to.match(/application\\/([\\w.-]+\\+)?json/));",
+                  "      }",
+                  "    }",
+                  "    if (expected >= 400 && text.length) {",
+                  "      pm.test('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));",
+                  "      pm.test('В ошибке есть title, status, detail', () => {",
+                  "        const err = pm.response.json();",
+                  "        pm.expect(err.title, 'title').to.be.a('string');",
+                  "        pm.expect(err.status, 'status').to.eql(code);",
+                  "        pm.expect(err.detail, 'detail').to.be.a('string').and.not.empty;",
+                  "      });",
+                  "      pm.test('detail без stack trace и имён классов', () => {",
+                  "        const detail = pm.response.json().detail || '';",
+                  "        pm.expect(detail).to.not.match(/Exception|\\tat |kz\\.jazz\\.|org\\.springframework/);",
+                  "      });",
+                  "    }",
+                  "  }",
+                  "}",
+                  "}",
+                  "const me = pm.response.json();",
+                  "pm.test('Токен ученика рабочий, это LEARNER', () => pm.expect(me.userType).to.eql('LEARNER'));",
+                  "// id берём отсюда, а не из Setup: если ученик остался от упавшего прогона, Setup получает 409",
+                  "// и записывает в learnerId пустое значение, а токен (вход по логину) при этом рабочий",
+                  "if (pm.environment.get('learnerId') !== me.id) {",
+                  "  console.warn(`learnerId из Setup (${pm.environment.get('learnerId')}) не совпал с /api/auth/me, беру ${me.id}`);",
+                  "}",
+                  "pm.environment.set('learnerId', me.id);",
+                  "pm.environment.set('learnerEmail', me.email);",
+                  "pm.environment.set('learnerFirstName', me.firstName);"
+                ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "SETUP-K · POST /api/courses · курс для тестов → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "{",
+                  "// Общие проверки §1.3 чек-листа. Ожидаемый код берётся из конца имени запроса: \"… → 201\".",
+                  "// \"→ пропущен gateway\" значит: gateway не отказал сам (нет пустого 401/403), дальше решает сервис.",
+                  "const m = pm.info.requestName.match(/→\\s*(\\d{3}|пропущен gateway)\\s*$/);",
+                  "if (m) {",
+                  "  const code = pm.response.code;",
+                  "  const text = pm.response.text();",
+                  "  const ct = (pm.response.headers.get('Content-Type') || '').toLowerCase();",
+                  "  if (m[1] === 'пропущен gateway') {",
+                  "    pm.test('Gateway пропустил запрос (нет пустого 401/403 от gateway)', () =>",
+                  "      pm.expect([401, 403].includes(code) && text.length === 0, `код ${code}, тело пустое`).to.be.false);",
+                  "  } else {",
+                  "    const expected = Number(m[1]);",
+                  "    pm.test(`Код ответа ${expected}`, () => pm.response.to.have.status(expected));",
+                  "    if (expected < 300) {",
+                  "      pm.test('Ответ быстрее 1500 мс', () => pm.expect(pm.response.responseTime).to.be.below(1500));",
+                  "      pm.test('В ответе нет passwordHash', () => pm.expect(text).to.not.include('passwordHash'));",
+                  "      if (expected !== 204 && text.length && !/csv|html/.test(ct)) {",
+                  "        pm.test('Content-Type: JSON', () => pm.expect(ct).to.match(/application\\/([\\w.-]+\\+)?json/));",
+                  "      }",
+                  "    }",
+                  "    if (expected >= 400 && text.length) {",
+                  "      pm.test('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));",
+                  "      pm.test('В ошибке есть title, status, detail', () => {",
+                  "        const err = pm.response.json();",
+                  "        pm.expect(err.title, 'title').to.be.a('string');",
+                  "        pm.expect(err.status, 'status').to.eql(code);",
+                  "        pm.expect(err.detail, 'detail').to.be.a('string').and.not.empty;",
+                  "      });",
+                  "      pm.test('detail без stack trace и имён классов', () => {",
+                  "        const detail = pm.response.json().detail || '';",
+                  "        pm.expect(detail).to.not.match(/Exception|\\tat |kz\\.jazz\\.|org\\.springframework/);",
+                  "      });",
+                  "    }",
+                  "  }",
+                  "}",
+                  "}",
+                  "pm.environment.set('courseId', pm.response.json().id);",
+                  "pm.environment.set('kCourseName', pm.response.json().name);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"K course {{runId}}\",\n  \"active\": true\n}"
+            }
+          }
         }
       ]
     },
