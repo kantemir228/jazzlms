@@ -23,6 +23,7 @@ ID проверки — имя запроса в коллекции `docs/postma
 | 12 | analytics | `timeline?page=-1` → 200 вместо 400 | низкая |
 | 13 | analytics | Невалидный id `abc` в `/users/{id}/activity` → 200 вместо 400 | низкая |
 | 14 | gamification | Профиль несуществующего пользователя → 200 вместо 404 | низкая |
+| 15 | analytics | В `/summary` нет `signups` и `enrollments` из §5.2 | низкая |
 
 Номера 3–7 — одна причина в четырёх сервисах: в `GlobalExceptionHandler` нет обработчиков
 `HttpMessageNotReadableException` (тело не читается) и `MethodArgumentTypeMismatchException`
@@ -261,6 +262,23 @@ curl -s http://localhost:8080/api/gamification/users/00000000-0000-0000-0000-000
 **Фактически:** 200 с пустым профилем (0 очков) — нельзя отличить «нет такого пользователя» от «пользователь без очков».
 
 **Где:** `LeaderboardService.profile` создаёт пустой профиль, если в базе ничего нет.
+
+---
+
+## 15. analytics-service: в /api/analytics/summary нет signups и enrollments
+
+**Проверка:** `ANL-07 · GET /api/analytics/summary · запомнить входы → 200` (проверка «§5.2: в сводке есть logins, signups, completions, enrollments») · **Серьёзность:** низкая
+
+**Шаги**
+```bash
+curl -s http://localhost:8080/api/analytics/summary -H "Authorization: Bearer <admin>"
+```
+
+**Ожидалось (§5.2 чек-листа, ANL-07):** числа `logins, signups, completions, enrollments`.
+**Фактически:** `today` и `week` содержат только `logins`, `courseCompletions`, `usersWithActivity`.
+Регистраций и записей на курс нет, хотя analytics их считает: `StatsService.record` пишет ключи `stats:signups:*` и `stats:enrollments:*` в Redis.
+
+**Где:** `StatsService.summary` / `period` собирает только три метрики. Либо добавить `signups` и `enrollments`, либо поправить §5.2.
 
 ---
 

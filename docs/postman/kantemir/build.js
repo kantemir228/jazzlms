@@ -602,6 +602,11 @@ const analytics = folder('04 analytics-service',
           pm.expect(s[p][k].previous, `${p}.${k}.previous`).to.be.a('number');
           pm.expect(s[p][k].changePercent, `${p}.${k}.changePercent`).to.be.a('number');
         })));
+      // §5.2 ANL-07: числа logins, signups, completions, enrollments; по факту сервис отдаёт другие поля —
+      // проверка красная, это расхождение с требованиями (ISSUES.md, №15)
+      pm.test('§5.2: в сводке есть logins, signups, completions, enrollments', () => ['today', 'week'].forEach(p =>
+        ['logins', 'signups', 'completions', 'enrollments'].forEach(k =>
+          pm.expect(s[p], `${p}.${k}`).to.have.property(k))));
       pm.environment.set('anlLogins0', s.today.logins.value);
     }) }),
   req('ANL-13 · GET /api/analytics/timeline · запомнить число входов ученика → 200', 'GET',
@@ -1045,24 +1050,29 @@ const DIRECT_401 = js(() => {
   pm.test('Заголовок WWW-Authenticate: Bearer', () => pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));
 });
 
-const MATRIX = [ // путь, метод, тело, [learner, instructor, admin]; true = gateway пропускает
+// Матрица §6 SEC-04: метод, путь, тело (или функция от роли), [learner, instructor, admin] — true = разрешено,
+// переменная для id созданного (или функция от роли): созданное убирают запросы SEC-cleanup сразу после матрицы.
+// Разрешённый GET → ровно 200, разрешённый POST → ровно 201, как в таблице чек-листа; запрещённый → 403 от gateway.
+const MATRIX = [
   ['GET', '/api/users', null, [false, true, true]],
-  ['POST', '/api/users', {}, [false, false, true]],
+  ['POST', '/api/users', { firstName: 'Sec', lastName: 'Matrix', email: 'sec_{{runId}}@test.local', username: 'sec_{{runId}}',
+    password: 'secret123', userType: 'LEARNER' }, [false, false, true], 'secUserId'],
   ['GET', '/api/settings', null, [false, false, true]],
-  ['POST', '/api/branches', {}, [false, false, true]],
+  ['POST', '/api/branches', { name: 'k-sec-{{runId}}' }, [false, false, true], 'secBranchId'],
   ['GET', '/api/branches', null, [false, true, true]],
-  ['POST', '/api/courses', {}, [false, true, true]],
+  ['POST', '/api/courses', role => ({ name: `K sec course {{runId}} ${role}`, active: true }), [false, true, true], role => `secCourse_${role}`],
   ['GET', '/api/courses', null, [true, true, true]],
-  ['POST', '/api/courses/{{courseId}}/enroll', null, [true, true, true]],
+  ['POST', '/api/courses/{{secEnrollCourseId}}/enroll', null, [true, true, true]],
   ['GET', '/api/courses/deleted', null, [false, false, true]],
   ['GET', '/api/courses/{{courseId}}/questions', null, [false, true, true]],
-  ['POST', '/api/units/{{secUnitId}}/test/attempts', null, [true, true, true]],
+  ['POST', '/api/units/{{secTestUnitId}}/test/attempts', null, [true, true, true]],
   ['GET', '/api/notifications', null, [false, false, true]],
   ['GET', '/api/analytics/timeline', null, [false, true, true]],
   ['GET', '/api/gamification/settings', null, [false, false, true]],
   ['GET', '/api/gamification/me', null, [true, true, true]],
   ['GET', '/api/certificates/templates', null, [false, true, true]],
-  ['POST', '/api/certificates/templates', {}, [false, false, true]],
+  ['POST', '/api/certificates/templates', { name: 'K sec tpl {{runId}}', background: 'classic', title: 'Certificate of Completion',
+    body: 'Матрица ролей SEC-04' }, [false, false, true], 'secTemplateId'],
 ];
 
 const security = folder('06 security',
@@ -1136,34 +1146,68 @@ const security = folder('06 security',
         pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.eql('http://localhost:3000'));
     }) }),
 
-  req('SEC-prep · POST /api/courses/{id}/units · урок для матрицы → 201', 'POST', `${B}/api/courses/{{courseId}}/units`, {
-    as: 'instructor', form: unitForm('K sec unit {{runId}}'), test: saveId('secUnitId') }),
-  // разрешённый GET обязан вернуть ровно 200; разрешённые POST идут с пустым телом, чтобы не создавать записи,
-  // поэтому для них проверяем только то, что gateway пропустил запрос (дальше сервис отвечает 400/409/201)
-  ...MATRIX.flatMap(([method, p, body, allowed]) => ['learner', 'instructor', 'admin'].map((role, i) =>
-    req(`SEC-04 · ${method} ${p} · ${role} → ${!allowed[i] ? '403' : method === 'GET' ? '200' : 'пропущен gateway'}`, method, `${B}${p}`, {
-      as: role, json: body === null ? undefined : body }))),
+  // курс, на который могут записаться все три роли: создатель записывается автоматически, поэтому эту запись снимаем,
+  // иначе самозапись admin дала бы 409; в курсе тест из одного вопроса — для строки POST …/test/attempts
+  req('SEC-prep · POST /api/courses · курс для самозаписи и попыток теста → 201', 'POST', `${B}/api/courses`, { as: 'admin',
+    json: { name: 'K sec enroll {{runId}}', active: true }, test: saveId('secEnrollCourseId') }),
+  req('SEC-prep · GET /api/courses/{id}/enrollments · снять автозапись создателя → 200', 'GET',
+    `${B}/api/courses/{{secEnrollCourseId}}/enrollments`, { as: 'admin',
+    test: js(() => {
+      const auth = { Authorization: 'Bearer ' + pm.environment.get('adminToken') };
+      pm.response.json().forEach(e => pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/enrollments/' + e.id),
+        method: 'DELETE', header: auth }, (err, res) => pm.test(`Запись ${e.role} снята`, () => pm.expect(res.code).to.eql(204))));
+    }) }),
+  req('SEC-prep · POST /api/courses/{id}/questions · вопрос для теста → 201', 'POST', `${B}/api/courses/{{secEnrollCourseId}}/questions`, {
+    as: 'admin', json: { type: 'MULTIPLE_CHOICE', text: '2 + 2 = ?', data: { answers: [{ text: '4', correct: true }, { text: '5', correct: false }] } },
+    test: saveId('secQuestionId') }),
+  req('SEC-prep · POST /api/courses/{id}/tests · тест для попыток → 201', 'POST', `${B}/api/courses/{{secEnrollCourseId}}/tests`, {
+    as: 'admin', json: { name: 'K sec test {{runId}}', passScore: 100, repetitions: 'ALWAYS', questions: [{ questionId: '{{secQuestionId}}', weight: 1 }] },
+    test: js(() => { pm.environment.set('secTestUnitId', pm.response.json().unitId); }) }),
+  ...MATRIX.flatMap(([method, p, body, allowed, save]) => ['learner', 'instructor', 'admin'].map((role, i) => {
+    const code = !allowed[i] ? '403' : method === 'GET' ? '200' : '201';
+    const json = typeof body === 'function' ? body(role) : body;
+    const saveVar = typeof save === 'function' ? save(role) : save;
+    return req(`SEC-04 · ${method} ${p} · ${role} → ${code}`, method, `${B}${p}`, {
+      as: role, json: json === null ? undefined : json, test: allowed[i] && saveVar ? saveId(saveVar) : undefined });
+  })),
+  // уборка того, что создала матрица
+  req('SEC-cleanup · DELETE /api/users/{secUserId} · пользователь из матрицы → 204', 'DELETE', `${B}/api/users/{{secUserId}}`, { as: 'admin' }),
+  req('SEC-cleanup · DELETE /api/branches/{secBranchId} · ветка из матрицы → 204', 'DELETE', `${B}/api/branches/{{secBranchId}}`, { as: 'admin' }),
+  req('SEC-cleanup · DELETE /api/certificates/templates/{secTemplateId} · шаблон из матрицы → 204', 'DELETE',
+    `${B}/api/certificates/templates/{{secTemplateId}}`, { as: 'admin' }),
+  ...[['secCourse_instructor', 'instructor'], ['secCourse_admin', 'admin'], ['secEnrollCourseId', 'admin']].flatMap(([v, owner]) => [
+    req(`SEC-cleanup · DELETE /api/courses/{${v}} · в корзину → 204`, 'DELETE', `${B}/api/courses/{{${v}}}`, { as: owner }),
+    req(`SEC-cleanup · DELETE /api/courses/{${v}}/permanent · навсегда → 204`, 'DELETE', `${B}/api/courses/{{${v}}}/permanent`, { as: 'admin' }),
+  ]),
 
-  req('SEC-05 · GET /api/courses · 120 запросов разом → часть 429 → 200', 'GET', `${B}/api/courses`, { as: 'learner',
+  req('SEC-05 · GET /api/courses · 60 запросов за 1 с одним токеном → часть 429 → 200', 'GET', `${B}/api/courses`, { as: 'learner',
     pre: js(() => {
-      // 120 запросов разом одним токеном; лимит gateway: всплеск до 40 и 20 в секунду. Ровно 60 — на границе:
-      // если стенд «холодный» и запросы растянулись на секунду, лимит успевает пополниться и 429 не будет
-      const codes = {};
-      let left = 120;
-      for (let i = 0; i < 120; i++) {
-        pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/courses'),
-          header: { Authorization: 'Bearer ' + pm.environment.get('learnerToken') } }, (err, res) => {
-          const c = err ? 'error' : res.code;
-          codes[c] = (codes[c] || 0) + 1;
-          if (--left === 0) {
-            pm.environment.set('secCodes', JSON.stringify(codes));
-            setTimeout(() => {}, 3000); // ждём, пока «ведро» токенов наполнится
-          }
-        });
-      }
+      // Лимит gateway: всплеск до 40 запросов и 20 в секунду. Если стенд «холодный», 60 запросов растягиваются
+      // дольше секунды, лимит успевает пополниться и 429 не будет — поэтому сначала прогрев и пауза 2,5 с
+      // (лимит наполняется полностью), потом ровно 60 запросов разом с замером времени.
+      const req = { url: pm.variables.replaceIn('{{baseUrl}}/api/courses'),
+        header: { Authorization: 'Bearer ' + pm.environment.get('learnerToken') } };
+      pm.sendRequest(req, () => pm.sendRequest(req, () => setTimeout(() => {
+        const codes = {};
+        const started = Date.now();
+        let left = 60;
+        for (let i = 0; i < 60; i++) {
+          pm.sendRequest(req, (err, res) => {
+            const c = err ? 'error' : res.code;
+            codes[c] = (codes[c] || 0) + 1;
+            if (--left === 0) {
+              pm.environment.set('secCodes', JSON.stringify(codes));
+              pm.environment.set('secBurstMs', Date.now() - started);
+              setTimeout(() => {}, 3000); // ждём, пока лимит наполнится, — сам запрос должен пройти
+            }
+          });
+        }
+      }, 2500)));
     }),
     test: js(() => {
       const codes = JSON.parse(pm.environment.get('secCodes'));
+      const ms = Number(pm.environment.get('secBurstMs'));
+      pm.test(`Все 60 ответов пришли за 1 с (${ms} мс)`, () => pm.expect(ms).to.be.below(1000));
       pm.test(`Часть запросов получила 429 (${JSON.stringify(codes)})`, () => pm.expect(codes['429'] || 0).to.be.above(0));
       pm.test('Остальные прошли (200)', () => pm.expect(codes['200'] || 0).to.be.above(0));
       // сам этот запрос ушёл через 3 с — лимит восстановился, поэтому 200 (проверка в общих тестах)
