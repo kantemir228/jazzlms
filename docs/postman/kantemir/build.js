@@ -82,15 +82,20 @@ const COMMON = ['{', ...js(() => {
       }
       if (expected >= 400 && text.length) {
         pm.test('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));
+        // Валидность проверяем строгим JSON.parse: pm.response.json() в Postman прощает, например,
+        // перенос строки внутри строки, а Newman — нет; без этого Postman и Newman видели бы дефект по-разному.
+        pm.test('Тело ошибки — валидный JSON', () => pm.expect(() => JSON.parse(text)).to.not.throw());
+        // поля читаем и из невалидного JSON (управляющие символы заменяем пробелами) — одинаково в обоих
+        let err = {};
+        try { err = JSON.parse(text.replace(/[\u0000-\u001f]/g, ' ')); } catch (e) { err = {}; }
         pm.test('В ошибке есть title, status, detail', () => {
-          const err = pm.response.json();
           pm.expect(err.title, 'title').to.be.a('string');
           pm.expect(err.status, 'status').to.eql(code);
           pm.expect(err.detail, 'detail').to.be.a('string').and.not.empty;
         });
-        pm.test('detail без stack trace и имён классов', () => {
-          const detail = pm.response.json().detail || '';
-          pm.expect(detail).to.not.match(/Exception|\tat |kz\.jazz\.|org\.springframework/);
+        pm.test('detail без stack trace, имён классов и сообщений парсера', () => {
+          pm.expect(err.detail || '').to.not.match(
+            /Exception|\tat |kz\.jazz\.|org\.springframework|\[Source:|line: \d+, column: \d+|Unable to deserialize/);
         });
       }
     }
