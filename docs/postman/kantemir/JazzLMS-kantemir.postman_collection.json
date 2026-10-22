@@ -1307,6 +1307,521 @@
             ],
             "url": "{{baseUrl}}/api/notifications/{{delayedRuleId}}"
           }
+        },
+        {
+          "name": "NEG-NTF · N1 · без токена · GET /api/notifications и ещё 10 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/notifications/events\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/notifications/recipients\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"none\"},{\"m\":\"POST\",\"p\":\"/api/notifications\",\"body\":{},\"auth\":\"none\"},{\"m\":\"PUT\",\"p\":\"/api/notifications/000000000000000000000000\",\"body\":{},\"auth\":\"none\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/notifications/history\",\"auth\":\"none\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/history\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/notifications/pending\",\"auth\":\"none\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/messages/000000000000000000000000\",\"auth\":\"none\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "NEG-NTF · N2 · мусорный токен · GET /api/notifications и ещё 10 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/notifications/events\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/notifications/recipients\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"garbage\"},{\"m\":\"POST\",\"p\":\"/api/notifications\",\"body\":{},\"auth\":\"garbage\"},{\"m\":\"PUT\",\"p\":\"/api/notifications/000000000000000000000000\",\"body\":{},\"auth\":\"garbage\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/notifications/history\",\"auth\":\"garbage\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/history\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/notifications/pending\",\"auth\":\"garbage\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/messages/000000000000000000000000\",\"auth\":\"garbage\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer abc.def.ghi"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "NEG-NTF · N3 · испорченная подпись · GET /api/notifications и ещё 10 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/notifications/events\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/notifications/recipients\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"broken\"},{\"m\":\"POST\",\"p\":\"/api/notifications\",\"body\":{},\"auth\":\"broken\"},{\"m\":\"PUT\",\"p\":\"/api/notifications/000000000000000000000000\",\"body\":{},\"auth\":\"broken\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/notifications/history\",\"auth\":\"broken\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/history\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/notifications/pending\",\"auth\":\"broken\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/messages/000000000000000000000000\",\"auth\":\"broken\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{brokenAdminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "NEG-NTF · N4 · instructor (нужен admin) · GET /api/notifications и ещё 10 → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/notifications/events\",\"auth\":\"instructor\"},{\"m\":\"GET\",\"p\":\"/api/notifications/recipients\",\"auth\":\"instructor\"},{\"m\":\"GET\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"instructor\"},{\"m\":\"POST\",\"p\":\"/api/notifications\",\"body\":{},\"auth\":\"instructor\"},{\"m\":\"PUT\",\"p\":\"/api/notifications/000000000000000000000000\",\"body\":{},\"auth\":\"instructor\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"instructor\"},{\"m\":\"GET\",\"p\":\"/api/notifications/history\",\"auth\":\"instructor\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/history\",\"auth\":\"instructor\"},{\"m\":\"GET\",\"p\":\"/api/notifications/pending\",\"auth\":\"instructor\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/messages/000000000000000000000000\",\"auth\":\"instructor\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('403');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "NEG-NTF · N5 · несуществующий id · GET /api/notifications/000000000000000000000000 и ещё 3 → 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"PUT\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"admin\",\"body\":{\"name\":\"K rule {{runId}}\",\"eventType\":\"COURSE_COMPLETED\",\"recipient\":\"RELATED_USER\",\"active\":true,\"delayMinutes\":0,\"subjectTemplate\":\"Done: {{courseName}}\",\"bodyTemplate\":\"Hi {{firstName}}!\"}},{\"m\":\"DELETE\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"admin\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/messages/000000000000000000000000\",\"auth\":\"admin\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('404');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications/000000000000000000000000"
+          }
+        },
+        {
+          "name": "NEG-NTF · N6 · невалидный id abc · как несуществующий · GET /api/notifications/abc и ещё 3 → 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"PUT\",\"p\":\"/api/notifications/abc\",\"auth\":\"admin\",\"body\":{\"name\":\"K rule {{runId}}\",\"eventType\":\"COURSE_COMPLETED\",\"recipient\":\"RELATED_USER\",\"active\":true,\"delayMinutes\":0,\"subjectTemplate\":\"Done: {{courseName}}\",\"bodyTemplate\":\"Hi {{firstName}}!\"}},{\"m\":\"DELETE\",\"p\":\"/api/notifications/abc\",\"auth\":\"admin\"},{\"m\":\"DELETE\",\"p\":\"/api/notifications/messages/abc\",\"auth\":\"admin\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('404');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications/abc"
+          }
+        },
+        {
+          "name": "NEG-NTF · N7 · неподдерживаемый метод · PATCH /api/notifications и ещё 5 → 405",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"POST\",\"p\":\"/api/notifications/events\",\"auth\":\"admin\"},{\"m\":\"PATCH\",\"p\":\"/api/notifications/recipients\",\"auth\":\"admin\",\"body\":{}},{\"m\":\"PATCH\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"admin\",\"body\":{}},{\"m\":\"PATCH\",\"p\":\"/api/notifications/history\",\"auth\":\"admin\",\"body\":{}},{\"m\":\"POST\",\"p\":\"/api/notifications/pending\",\"auth\":\"admin\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('405');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "NEG-NTF · N8 · тело не JSON · POST /api/notifications и ещё 1 → 400",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"PUT\",\"p\":\"/api/notifications/000000000000000000000000\",\"auth\":\"admin\",\"body\":\"{name: oops\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('400');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/notifications",
+            "body": {
+              "mode": "raw",
+              "raw": "{name: oops"
+            }
+          }
         }
       ],
       "event": [
@@ -2265,6 +2780,442 @@
               }
             ],
             "url": "{{baseUrl}}/api/analytics/courses/{{anlCourseId}}/activity"
+          }
+        },
+        {
+          "name": "NEG-ANL · N1 · без токена · GET /api/analytics/summary и ещё 7 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/analytics/timeline\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/analytics/timeline/export\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/analytics/dashboard\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/analytics/overview\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/analytics/top-users\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/analytics/users/{{learnerId}}/activity\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/analytics/courses/{{anlCourseId}}/activity\",\"auth\":\"none\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/summary"
+          }
+        },
+        {
+          "name": "NEG-ANL · N2 · мусорный токен · GET /api/analytics/summary и ещё 7 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/analytics/timeline\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/analytics/timeline/export\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/analytics/dashboard\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/analytics/overview\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/analytics/top-users\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/analytics/users/{{learnerId}}/activity\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/analytics/courses/{{anlCourseId}}/activity\",\"auth\":\"garbage\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer abc.def.ghi"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/summary"
+          }
+        },
+        {
+          "name": "NEG-ANL · N3 · испорченная подпись · GET /api/analytics/summary и ещё 7 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/analytics/timeline\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/analytics/timeline/export\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/analytics/dashboard\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/analytics/overview\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/analytics/top-users\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/analytics/users/{{learnerId}}/activity\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/analytics/courses/{{anlCourseId}}/activity\",\"auth\":\"broken\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{brokenAdminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/summary"
+          }
+        },
+        {
+          "name": "NEG-ANL · N4 · learner (нужен staff) · GET /api/analytics/summary и ещё 7 → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/analytics/timeline\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/analytics/timeline/export\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/analytics/dashboard\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/analytics/overview\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/analytics/top-users\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/analytics/users/{{learnerId}}/activity\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/analytics/courses/{{anlCourseId}}/activity\",\"auth\":\"learner\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('403');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/summary"
+          }
+        },
+        {
+          "name": "NEG-ANL · N5 · несуществующий id · нули · GET /api/analytics/users/00000000-0000-0000-0000-000000000000/activity и ещё 1 → 200",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/analytics/courses/00000000-0000-0000-0000-000000000000/activity\",\"auth\":\"instructor\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('200');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/users/00000000-0000-0000-0000-000000000000/activity"
+          }
+        },
+        {
+          "name": "NEG-ANL · N6 · невалидный UUID abc · GET /api/analytics/users/abc/activity и ещё 1 → 400",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/analytics/courses/abc/activity\",\"auth\":\"instructor\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('400');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/users/abc/activity"
+          }
+        },
+        {
+          "name": "NEG-ANL · N7 · неподдерживаемый метод · POST /api/analytics/timeline и ещё 5 → 405",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"POST\",\"p\":\"/api/analytics/summary\",\"auth\":\"admin\"},{\"m\":\"POST\",\"p\":\"/api/analytics/dashboard\",\"auth\":\"admin\"},{\"m\":\"POST\",\"p\":\"/api/analytics/overview\",\"auth\":\"admin\"},{\"m\":\"DELETE\",\"p\":\"/api/analytics/top-users\",\"auth\":\"admin\"},{\"m\":\"PUT\",\"p\":\"/api/analytics/timeline/export\",\"auth\":\"admin\",\"body\":{}}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('405');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/analytics/timeline"
           }
         }
       ],
@@ -3690,6 +4641,343 @@
           }
         },
         {
+          "name": "GAM-prep · POST /api/courses · курс с тестом → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('gamTestCourseId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"K gam test course {{runId}}\",\n  \"active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "GAM-prep · POST /api/courses/{id}/questions · вопрос «2 + 2» → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('gamQuestionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{gamTestCourseId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"MULTIPLE_CHOICE\",\n  \"text\": \"2 + 2 = ?\",\n  \"data\": {\n    \"answers\": [\n      {\n        \"text\": \"4\",\n        \"correct\": true\n      },\n      {\n        \"text\": \"5\",\n        \"correct\": false\n      }\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "GAM-prep · POST /api/courses/{id}/tests · тест из одного вопроса → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('gamTestUnitId', pm.response.json().unitId); "
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{gamTestCourseId}}/tests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"K gam test {{runId}}\",\n  \"passScore\": 100,\n  \"repetitions\": \"ALWAYS\",\n  \"questions\": [\n    {\n      \"questionId\": \"{{gamQuestionId}}\",\n      \"weight\": 1\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "GAM-prep · POST /api/courses/{id}/enrollments · записать ученика → 201",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{gamTestCourseId}}/enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{learnerId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GAM-05 · POST /api/units/{id}/test/attempts · первая попытка → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('gamAttempt1', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/units/{{gamTestUnitId}}/test/attempts"
+          }
+        },
+        {
+          "name": "GAM-05 · POST …/attempts/{id}/submit · неверный ответ → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Тест не сдан', () => pm.expect(pm.response.json().passed).to.eql(false)); "
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/units/{{gamTestUnitId}}/test/attempts/{{gamAttempt1}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"answers\": { \"{{gamQuestionId}}\": 1 } }"
+            }
+          }
+        },
+        {
+          "name": "GAM-05 · GET /api/gamification/me · проваленный тест очков не даёт → 200",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function poll(url, tokenVar, check, timeoutMs, done) {",
+                  "  const started = Date.now();",
+                  "  (function tick() {",
+                  "    pm.sendRequest({ url: pm.variables.replaceIn(url), method: 'GET',",
+                  "      header: { Authorization: 'Bearer ' + pm.environment.get(tokenVar) } }, (err, res) => {",
+                  "      let ok = false;",
+                  "      try { ok = !err && res.code === 200 && check(res.json()); } catch (e) { ok = false; }",
+                  "      const elapsed = Date.now() - started;",
+                  "      if (ok || elapsed > timeoutMs) return done(ok, elapsed);",
+                  "      setTimeout(tick, 500);",
+                  "    });",
+                  "  })();",
+                  "}",
+                  "poll(\"{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&type=TEST_COMPLETED&size=5\", \"adminToken\", page => page.items.some(i => i.payload.unitId === pm.environment.get('gamTestUnitId') && i.payload.passed === 'false'), 10000, (ok, ms) => {",
+                  "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
+                  "  setTimeout(() => {}, 1500);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
+                  "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
+                  "pm.test('Нет записи «Test passed»', () =>",
+                  "  pm.expect(pm.response.json().history.filter(h => h.action === 'Test passed')).to.have.length(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/me"
+          }
+        },
+        {
+          "name": "GAM-05 · POST /api/units/{id}/test/attempts · вторая попытка → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('gamAttempt2', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/units/{{gamTestUnitId}}/test/attempts"
+          }
+        },
+        {
+          "name": "GAM-05 · POST …/attempts/{id}/submit · верный ответ → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Тест сдан', () => pm.expect(pm.response.json().passed).to.eql(true)); "
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/units/{{gamTestUnitId}}/test/attempts/{{gamAttempt2}}/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"answers\": { \"{{gamQuestionId}}\": 0 } }"
+            }
+          }
+        },
+        {
+          "name": "GAM-05 · GET /api/gamification/me · сданный тест дал +20 → 200",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function poll(url, tokenVar, check, timeoutMs, done) {",
+                  "  const started = Date.now();",
+                  "  (function tick() {",
+                  "    pm.sendRequest({ url: pm.variables.replaceIn(url), method: 'GET',",
+                  "      header: { Authorization: 'Bearer ' + pm.environment.get(tokenVar) } }, (err, res) => {",
+                  "      let ok = false;",
+                  "      try { ok = !err && res.code === 200 && check(res.json()); } catch (e) { ok = false; }",
+                  "      const elapsed = Date.now() - started;",
+                  "      if (ok || elapsed > timeoutMs) return done(ok, elapsed);",
+                  "      setTimeout(tick, 500);",
+                  "    });",
+                  "  })();",
+                  "}",
+                  "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.history.some(h => h.action === 'Test passed'), 10000, (ok, ms) => {",
+                  "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
+                  "",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
+                  "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
+                  "const passed = pm.response.json().history.filter(h => h.action === 'Test passed');",
+                  "pm.test('Одна запись «Test passed» на 20 очков', () => {",
+                  "  pm.expect(passed).to.have.length(1);",
+                  "  pm.expect(passed[0].points).to.eql(20);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/me"
+          }
+        },
+        {
           "name": "GAM-15 · POST /api/gamification/settings/reset · instructor → 403",
           "event": [],
           "request": {
@@ -3814,6 +5102,513 @@
               }
             ],
             "url": "{{baseUrl}}/api/gamification/leaderboard"
+          }
+        },
+        {
+          "name": "NEG-GAM · N1 · без токена · GET /api/gamification/me и ещё 8 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/gamification/config\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/gamification/rules\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/gamification/leaderboard\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/gamification/users/{{learnerId}}\",\"auth\":\"none\"},{\"m\":\"GET\",\"p\":\"/api/gamification/settings\",\"auth\":\"none\"},{\"m\":\"PUT\",\"p\":\"/api/gamification/settings\",\"body\":{},\"auth\":\"none\"},{\"m\":\"POST\",\"p\":\"/api/gamification/settings/reset\",\"auth\":\"none\"},{\"m\":\"POST\",\"p\":\"/api/gamification/reset-statistics\",\"auth\":\"none\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/gamification/me"
+          }
+        },
+        {
+          "name": "NEG-GAM · N2 · мусорный токен · GET /api/gamification/me и ещё 8 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/gamification/config\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/gamification/rules\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/gamification/leaderboard\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/gamification/users/{{learnerId}}\",\"auth\":\"garbage\"},{\"m\":\"GET\",\"p\":\"/api/gamification/settings\",\"auth\":\"garbage\"},{\"m\":\"PUT\",\"p\":\"/api/gamification/settings\",\"body\":{},\"auth\":\"garbage\"},{\"m\":\"POST\",\"p\":\"/api/gamification/settings/reset\",\"auth\":\"garbage\"},{\"m\":\"POST\",\"p\":\"/api/gamification/reset-statistics\",\"auth\":\"garbage\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer abc.def.ghi"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/me"
+          }
+        },
+        {
+          "name": "NEG-GAM · N3 · испорченная подпись · GET /api/gamification/me и ещё 8 → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"GET\",\"p\":\"/api/gamification/config\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/gamification/rules\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/gamification/leaderboard\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/gamification/users/{{learnerId}}\",\"auth\":\"broken\"},{\"m\":\"GET\",\"p\":\"/api/gamification/settings\",\"auth\":\"broken\"},{\"m\":\"PUT\",\"p\":\"/api/gamification/settings\",\"body\":{},\"auth\":\"broken\"},{\"m\":\"POST\",\"p\":\"/api/gamification/settings/reset\",\"auth\":\"broken\"},{\"m\":\"POST\",\"p\":\"/api/gamification/reset-statistics\",\"auth\":\"broken\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('401');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{brokenAdminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/me"
+          }
+        },
+        {
+          "name": "NEG-GAM · N4 · роль ниже требуемой · GET /api/gamification/settings и ещё 5 → 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"PUT\",\"p\":\"/api/gamification/settings\",\"auth\":\"instructor\",\"body\":{}},{\"m\":\"POST\",\"p\":\"/api/gamification/settings/reset\",\"auth\":\"instructor\"},{\"m\":\"POST\",\"p\":\"/api/gamification/reset-statistics\",\"auth\":\"instructor\"},{\"m\":\"GET\",\"p\":\"/api/gamification/settings\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/gamification/users/{{learnerId}}\",\"auth\":\"learner\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('403');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/settings"
+          }
+        },
+        {
+          "name": "NEG-GAM · N5 · несуществующий пользователь · GET /api/gamification/users/00000000-0000-0000-0000-000000000000 и ещё 0 → 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('404');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/users/00000000-0000-0000-0000-000000000000"
+          }
+        },
+        {
+          "name": "NEG-GAM · N6 · невалидный UUID abc · GET /api/gamification/users/abc и ещё 0 → 400",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('400');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/users/abc"
+          }
+        },
+        {
+          "name": "NEG-GAM · N7 · неподдерживаемый метод · POST /api/gamification/me и ещё 6 → 405",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [{\"m\":\"PATCH\",\"p\":\"/api/gamification/settings\",\"auth\":\"admin\",\"body\":{}},{\"m\":\"DELETE\",\"p\":\"/api/gamification/settings\",\"auth\":\"admin\"},{\"m\":\"POST\",\"p\":\"/api/gamification/config\",\"auth\":\"learner\"},{\"m\":\"POST\",\"p\":\"/api/gamification/leaderboard\",\"auth\":\"learner\"},{\"m\":\"POST\",\"p\":\"/api/gamification/rules\",\"auth\":\"learner\"},{\"m\":\"GET\",\"p\":\"/api/gamification/reset-statistics\",\"auth\":\"admin\"}];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('405');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{learnerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/me"
+          }
+        },
+        {
+          "name": "NEG-GAM · N8 · тело не JSON · PUT /api/gamification/settings и ещё 0 → 400",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// испорченная подпись (N3): меняем один символ в конце токена администратора",
+                  "const t = pm.environment.get('adminToken');",
+                  "pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));",
+                  "const entries = [];",
+                  "const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'",
+                  "  : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');",
+                  "const results = [];",
+                  "(function next(i) {",
+                  "  if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));",
+                  "  const e = entries[i];",
+                  "  const header = [];",
+                  "  const auth = authHeader(e.auth);",
+                  "  if (auth) header.push({ key: 'Authorization', value: auth });",
+                  "  const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };",
+                  "  if (e.body !== undefined) {",
+                  "    header.push({ key: 'Content-Type', value: 'application/json' });",
+                  "    request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };",
+                  "  }",
+                  "  pm.sendRequest(request, (err, res) => {",
+                  "    results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,",
+                  "      ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });",
+                  "    next(i + 1);",
+                  "  });",
+                  "})(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const group = Number('400');",
+                  "JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {",
+                  "  const expected = r.expect || group;",
+                  "  pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));",
+                  "  if (expected >= 400 && r.size) {",
+                  "    pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/gamification/settings",
+            "body": {
+              "mode": "raw",
+              "raw": "{enabled: oops"
+            }
           }
         }
       ],
@@ -4568,8 +6363,11 @@
                   "  return data + '.' + sign(data, secret);",
                   "}",
                   "const learnerClaims = () => dec(pm.environment.get('learnerToken').split('.')[1]);",
+                  "// учебный секрет по умолчанию из services/api-gateway/src/main/resources/application.yml (jwt.secret);",
+                  "// если стенд поднят с другим JWT_SECRET, задайте переменную jwtSecret в окружении",
+                  "const jwtSecret = pm.environment.get('jwtSecret') || 'jazzlms-super-secret-key-for-teaching-purposes-only-32b';",
                   "const now = Math.floor(Date.now() / 1000);",
-                  "pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now, exp: now + 3600 }), pm.environment.get('jwtSecret')));"
+                  "pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now, exp: now + 3600 }), jwtSecret));"
                 ]
               }
             }
@@ -4604,8 +6402,11 @@
                   "  return data + '.' + sign(data, secret);",
                   "}",
                   "const learnerClaims = () => dec(pm.environment.get('learnerToken').split('.')[1]);",
+                  "// учебный секрет по умолчанию из services/api-gateway/src/main/resources/application.yml (jwt.secret);",
+                  "// если стенд поднят с другим JWT_SECRET, задайте переменную jwtSecret в окружении",
+                  "const jwtSecret = pm.environment.get('jwtSecret') || 'jazzlms-super-secret-key-for-teaching-purposes-only-32b';",
                   "const now = Math.floor(Date.now() / 1000);",
-                  "pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now - 36000, exp: now - 3600 }), pm.environment.get('jwtSecret')));"
+                  "pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now - 36000, exp: now - 3600 }), jwtSecret));"
                 ]
               }
             }
@@ -4640,6 +6441,9 @@
                   "  return data + '.' + sign(data, secret);",
                   "}",
                   "const learnerClaims = () => dec(pm.environment.get('learnerToken').split('.')[1]);",
+                  "// учебный секрет по умолчанию из services/api-gateway/src/main/resources/application.yml (jwt.secret);",
+                  "// если стенд поднят с другим JWT_SECRET, задайте переменную jwtSecret в окружении",
+                  "const jwtSecret = pm.environment.get('jwtSecret') || 'jazzlms-super-secret-key-for-teaching-purposes-only-32b';",
                   "pm.variables.set('secToken', makeJwt(learnerClaims(), 'some-other-secret-key-that-is-long-enough-for-hs384-ok'));"
                 ]
               }
@@ -4675,6 +6479,9 @@
                   "  return data + '.' + sign(data, secret);",
                   "}",
                   "const learnerClaims = () => dec(pm.environment.get('learnerToken').split('.')[1]);",
+                  "// учебный секрет по умолчанию из services/api-gateway/src/main/resources/application.yml (jwt.secret);",
+                  "// если стенд поднят с другим JWT_SECRET, задайте переменную jwtSecret в окружении",
+                  "const jwtSecret = pm.environment.get('jwtSecret') || 'jazzlms-super-secret-key-for-teaching-purposes-only-32b';",
                   "const [h, , s] = pm.environment.get('learnerToken').split('.');",
                   "pm.variables.set('secToken', [h, enc(Object.assign(learnerClaims(), { role: 'SUPER_ADMIN' })), s].join('.'));"
                 ]
@@ -6394,6 +8201,34 @@
               }
             ],
             "url": "{{baseUrl}}/api/courses/{{gamCourseId}}/permanent"
+          }
+        },
+        {
+          "name": "TD-K · DELETE /api/courses/{gamTestCourseId} · в корзину → 204",
+          "event": [],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{instructorToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{gamTestCourseId}}"
+          }
+        },
+        {
+          "name": "TD-K · DELETE /api/courses/{gamTestCourseId}/permanent · навсегда → 204",
+          "event": [],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/courses/{{gamTestCourseId}}/permanent"
           }
         },
         {

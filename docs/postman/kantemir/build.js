@@ -131,6 +131,66 @@ const POLL_OK = js(() => {
 
 const B = '{{baseUrl}}';
 
+// ---------- §1.4: стандартные негативы N1–N8 сразу для всех путей сервиса ----------
+
+/**
+ * Один запрос на один вид негатива (N1…N8) для целого сервиса. Первый путь из списка — сам запрос
+ * (его проверяют общие тесты папки), остальные pre-request отправляет по очереди, и на каждый
+ * в Tests заводится своя проверка. Так каждый эндпоинт получает весь набор §1.4, а запросов — 8 на сервис.
+ * Поле expect у пути — когда факт отличается от общего ожидания и записан как «зафиксировано».
+ */
+const SWEEP_PRE = js(() => {
+  // испорченная подпись (N3): меняем один символ в конце токена администратора
+  const t = pm.environment.get('adminToken');
+  pm.variables.set('brokenAdminToken', t.slice(0, -2) + (t.slice(-2, -1) === 'A' ? 'B' : 'A') + t.slice(-1));
+  const entries = __ENTRIES__;
+  const authHeader = kind => kind === 'none' ? null : kind === 'garbage' ? 'Bearer abc.def.ghi'
+    : kind === 'broken' ? 'Bearer ' + pm.variables.get('brokenAdminToken') : 'Bearer ' + pm.environment.get(kind + 'Token');
+  const results = [];
+  (function next(i) {
+    if (i >= entries.length) return pm.variables.set('sweepResults', JSON.stringify(results));
+    const e = entries[i];
+    const header = [];
+    const auth = authHeader(e.auth);
+    if (auth) header.push({ key: 'Authorization', value: auth });
+    const request = { url: pm.variables.replaceIn('{{baseUrl}}' + e.p), method: e.m, header };
+    if (e.body !== undefined) {
+      header.push({ key: 'Content-Type', value: 'application/json' });
+      request.body = { mode: 'raw', raw: typeof e.body === 'string' ? e.body : JSON.stringify(e.body) };
+    }
+    pm.sendRequest(request, (err, res) => {
+      results.push({ label: `${e.m} ${e.p} (${e.auth})`, expect: e.expect, code: err ? 'error' : res.code,
+        ct: err ? '' : (res.headers.get('Content-Type') || ''), size: err ? 0 : res.text().length });
+      next(i + 1);
+    });
+  })(0);
+});
+
+const SWEEP_TEST = js(() => {
+  const group = Number('__EXPECTED__');
+  JSON.parse(pm.variables.get('sweepResults') || '[]').forEach(r => {
+    const expected = r.expect || group;
+    pm.test(`${r.label} → ${expected}`, () => pm.expect(r.code, `пришло ${r.code}`).to.eql(expected));
+    if (expected >= 400 && r.size) {
+      pm.test(`${r.label}: ошибка в формате problem+json`, () => pm.expect(r.ct).to.include('application/problem+json'));
+    }
+  });
+});
+
+function sweep(id, title, expected, entries) {
+  const [first, ...rest] = entries;
+  const headers = first.auth === 'garbage' ? [{ key: 'Authorization', value: 'Bearer abc.def.ghi' }]
+    : first.auth === 'broken' ? [{ key: 'Authorization', value: 'Bearer {{brokenAdminToken}}' }] : [];
+  const as = ['admin', 'instructor', 'learner'].includes(first.auth) ? first.auth : undefined;
+  return req(`${id} · ${title} · ${first.m} ${first.p} и ещё ${rest.length} → ${first.expect || expected}`, first.m, `${B}${first.p}`, {
+    as, headers, json: first.body,
+    pre: SWEEP_PRE.map(l => l.replace('__ENTRIES__', JSON.stringify(rest))),
+    test: SWEEP_TEST.map(l => l.replace('__EXPECTED__', expected)) });
+}
+
+/** Пути сервиса с методом и телом -> те же пути с нужной авторизацией (N1–N4). */
+const withAuth = (paths, auth) => paths.map(([m, p, body]) => ({ m, p, body, auth }));
+
 // ======================================================================
 // 00 Setup · Kantemir
 // ======================================================================
@@ -194,6 +254,14 @@ const ALL_EVENTS = ['USER_CREATED', 'USER_SIGNED_UP', 'USER_LOGGED_IN', 'COURSE_
   'COURSE_RESTORED', 'USER_DELETED', 'USER_IMPERSONATED', 'CERTIFICATE_ISSUED', 'TEST_COMPLETED'];
 
 const N = `${B}/api/notifications`;
+const NO_OID = '000000000000000000000000';   // ObjectId, которого нет
+const NO_UUID = '00000000-0000-0000-0000-000000000000';
+// все пути сервиса: [метод, путь, тело]; первый — безопасный GET, он станет самим запросом
+const NTF_PATHS = [
+  ['GET', '/api/notifications'], ['GET', '/api/notifications/events'], ['GET', '/api/notifications/recipients'],
+  ['GET', `/api/notifications/${NO_OID}`], ['POST', '/api/notifications', {}], ['PUT', `/api/notifications/${NO_OID}`, {}],
+  ['DELETE', `/api/notifications/${NO_OID}`], ['GET', '/api/notifications/history'], ['DELETE', '/api/notifications/history'],
+  ['GET', '/api/notifications/pending'], ['DELETE', `/api/notifications/messages/${NO_OID}`]];
 const rule = (over = {}) => Object.assign({ name: 'K rule {{runId}}', eventType: 'COURSE_COMPLETED', recipient: 'RELATED_USER',
   active: true, delayMinutes: 0, subjectTemplate: 'Done: {{courseName}}', bodyTemplate: 'Hi {{firstName}}!' }, over);
 
@@ -354,6 +422,34 @@ const notification = folder('03 notification-service',
   req('NTF-11 · DELETE /api/notifications/messages/{id} · отложенное письмо → 204', 'DELETE', `${N}/messages/{{pendingMessageId}}`, { as: 'admin' }),
   req('NTF-11 · DELETE /api/notifications/messages/{id} · несуществующее → 404', 'DELETE', `${N}/messages/000000000000000000000000`, { as: 'admin' }),
   req('NTF-09 · DELETE /api/notifications/{id} · убрать правило с задержкой → 204', 'DELETE', `${N}/{{delayedRuleId}}`, { as: 'admin' }),
+
+  // --- §1.4: N1–N8 для всех путей сервиса ---
+  sweep('NEG-NTF · N1', 'без токена', 401, withAuth(NTF_PATHS, 'none')),
+  sweep('NEG-NTF · N2', 'мусорный токен', 401, withAuth(NTF_PATHS, 'garbage')),
+  sweep('NEG-NTF · N3', 'испорченная подпись', 401, withAuth(NTF_PATHS, 'broken')),
+  sweep('NEG-NTF · N4', 'instructor (нужен admin)', 403, withAuth(NTF_PATHS, 'instructor')),
+  sweep('NEG-NTF · N5', 'несуществующий id', 404, [
+    { m: 'GET', p: `/api/notifications/${NO_OID}`, auth: 'admin' },
+    { m: 'PUT', p: `/api/notifications/${NO_OID}`, auth: 'admin', body: rule() },
+    { m: 'DELETE', p: `/api/notifications/${NO_OID}`, auth: 'admin' },
+    { m: 'DELETE', p: `/api/notifications/messages/${NO_OID}`, auth: 'admin' }]),
+  // id правил — ObjectId MongoDB; невалидный id ищется как обычная строка и не находится (зафиксировано: 404, не 400)
+  sweep('NEG-NTF · N6', 'невалидный id abc · как несуществующий', 404, [
+    { m: 'GET', p: '/api/notifications/abc', auth: 'admin' },
+    { m: 'PUT', p: '/api/notifications/abc', auth: 'admin', body: rule() },
+    { m: 'DELETE', p: '/api/notifications/abc', auth: 'admin' },
+    { m: 'DELETE', p: '/api/notifications/messages/abc', auth: 'admin' }]),
+  sweep('NEG-NTF · N7', 'неподдерживаемый метод', 405, [
+    { m: 'PATCH', p: '/api/notifications', auth: 'admin', body: {} },
+    { m: 'POST', p: '/api/notifications/events', auth: 'admin' },
+    { m: 'PATCH', p: '/api/notifications/recipients', auth: 'admin', body: {} },
+    { m: 'PATCH', p: `/api/notifications/${NO_OID}`, auth: 'admin', body: {} },
+    // не PUT: PUT /api/notifications/history попадает в PUT /{id} с id = "history"
+    { m: 'PATCH', p: '/api/notifications/history', auth: 'admin', body: {} },
+    { m: 'POST', p: '/api/notifications/pending', auth: 'admin' }]),
+  sweep('NEG-NTF · N8', 'тело не JSON', 400, [
+    { m: 'POST', p: '/api/notifications', auth: 'admin', body: '{name: oops' },
+    { m: 'PUT', p: `/api/notifications/${NO_OID}`, auth: 'admin', body: '{name: oops' }]),
 ]);
 
 // ======================================================================
@@ -361,6 +457,10 @@ const notification = folder('03 notification-service',
 // ======================================================================
 
 const A = `${B}/api/analytics`;
+const ANL_PATHS = [
+  ['GET', '/api/analytics/summary'], ['GET', '/api/analytics/timeline'], ['GET', '/api/analytics/timeline/export'],
+  ['GET', '/api/analytics/dashboard'], ['GET', '/api/analytics/overview'], ['GET', '/api/analytics/top-users'],
+  ['GET', '/api/analytics/users/{{learnerId}}/activity'], ['GET', '/api/analytics/courses/{{anlCourseId}}/activity']];
 const isSortedDesc = js(() => {
   const at = items.map(i => Date.parse(i.occurredAt));
   pm.test('Отсортировано по occurredAt, новые сверху', () => pm.expect(at).to.eql([...at].sort((a, b) => b - a)));
@@ -542,6 +642,26 @@ const analytics = folder('04 analytics-service',
       });
     })] }),
   req('ANL-12 · GET /api/analytics/courses/{id}/activity · learner → 403', 'GET', `${A}/courses/{{anlCourseId}}/activity`, { as: 'learner' }),
+
+  // --- §1.4: N1–N8 для всех путей сервиса (N8 не применим: у сервиса нет запросов с телом) ---
+  sweep('NEG-ANL · N1', 'без токена', 401, withAuth(ANL_PATHS, 'none')),
+  sweep('NEG-ANL · N2', 'мусорный токен', 401, withAuth(ANL_PATHS, 'garbage')),
+  sweep('NEG-ANL · N3', 'испорченная подпись', 401, withAuth(ANL_PATHS, 'broken')),
+  sweep('NEG-ANL · N4', 'learner (нужен staff)', 403, withAuth(ANL_PATHS, 'learner')),
+  // ANL-11 в чек-листе разрешает «200 с нулями или 404 — зафиксировать»: зафиксировано 200 с нулями
+  sweep('NEG-ANL · N5', 'несуществующий id · нули', 200, [
+    { m: 'GET', p: `/api/analytics/users/${NO_UUID}/activity`, auth: 'instructor' },
+    { m: 'GET', p: `/api/analytics/courses/${NO_UUID}/activity`, auth: 'instructor' }]),
+  sweep('NEG-ANL · N6', 'невалидный UUID abc', 400, [
+    { m: 'GET', p: '/api/analytics/users/abc/activity', auth: 'instructor' },
+    { m: 'GET', p: '/api/analytics/courses/abc/activity', auth: 'instructor' }]),
+  sweep('NEG-ANL · N7', 'неподдерживаемый метод', 405, [
+    { m: 'POST', p: '/api/analytics/timeline', auth: 'admin' },
+    { m: 'POST', p: '/api/analytics/summary', auth: 'admin' },
+    { m: 'POST', p: '/api/analytics/dashboard', auth: 'admin' },
+    { m: 'POST', p: '/api/analytics/overview', auth: 'admin' },
+    { m: 'DELETE', p: '/api/analytics/top-users', auth: 'admin' },
+    { m: 'PUT', p: '/api/analytics/timeline/export', auth: 'admin', body: {} }]),
 ]);
 
 // ======================================================================
@@ -549,6 +669,11 @@ const analytics = folder('04 analytics-service',
 // ======================================================================
 
 const G = `${B}/api/gamification`;
+const GAM_PATHS = [
+  ['GET', '/api/gamification/me'], ['GET', '/api/gamification/config'], ['GET', '/api/gamification/rules'],
+  ['GET', '/api/gamification/leaderboard'], ['GET', '/api/gamification/users/{{learnerId}}'],
+  ['GET', '/api/gamification/settings'], ['PUT', '/api/gamification/settings', {}],
+  ['POST', '/api/gamification/settings/reset'], ['POST', '/api/gamification/reset-statistics']];
 const ME = `${G}/me`;
 
 /** Запомнить очки, уроки и курсы ученика до действия. */
@@ -755,6 +880,44 @@ const gamification = folder('05 gamification-service',
         pm.expect(pm.response.json().history.find(h => h.action === 'Certificate').points).to.eql(50));
     }) }),
 
+  // --- GAM-05: тест — проваленный не даёт очков, сданный даёт +20 ---
+  req('GAM-prep · POST /api/courses · курс с тестом → 201', 'POST', `${B}/api/courses`, { as: 'instructor',
+    json: { name: 'K gam test course {{runId}}', active: true }, test: saveId('gamTestCourseId') }),
+  req('GAM-prep · POST /api/courses/{id}/questions · вопрос «2 + 2» → 201', 'POST', `${B}/api/courses/{{gamTestCourseId}}/questions`, {
+    as: 'instructor', json: { type: 'MULTIPLE_CHOICE', text: '2 + 2 = ?', data: { answers: [{ text: '4', correct: true }, { text: '5', correct: false }] } },
+    test: saveId('gamQuestionId') }),
+  req('GAM-prep · POST /api/courses/{id}/tests · тест из одного вопроса → 201', 'POST', `${B}/api/courses/{{gamTestCourseId}}/tests`, {
+    as: 'instructor', json: { name: 'K gam test {{runId}}', passScore: 100, repetitions: 'ALWAYS', questions: [{ questionId: '{{gamQuestionId}}', weight: 1 }] },
+    test: js(() => { pm.environment.set('gamTestUnitId', pm.response.json().unitId); }) }),
+  req('GAM-prep · POST /api/courses/{id}/enrollments · записать ученика → 201', 'POST', `${B}/api/courses/{{gamTestCourseId}}/enrollments`, {
+    as: 'instructor', json: { userId: '{{learnerId}}' } }),
+  req('GAM-05 · POST /api/units/{id}/test/attempts · первая попытка → 201', 'POST', `${B}/api/units/{{gamTestUnitId}}/test/attempts`, {
+    as: 'learner', test: saveId('gamAttempt1') }),
+  req('GAM-05 · POST …/attempts/{id}/submit · неверный ответ → 200', 'POST', `${B}/api/units/{{gamTestUnitId}}/test/attempts/{{gamAttempt1}}/submit`, {
+    as: 'learner', json: '{ "answers": { "{{gamQuestionId}}": 1 } }',
+    test: js(() => { pm.test('Тест не сдан', () => pm.expect(pm.response.json().passed).to.eql(false)); }) }),
+  req('GAM-05 · GET /api/gamification/me · проваленный тест очков не даёт → 200', 'GET', ME, { as: 'learner',
+    pre: waitFor(`${A}/timeline?userId={{learnerId}}&type=TEST_COMPLETED&size=5`, 'adminToken',
+      page => page.items.some(i => i.payload.unitId === pm.environment.get('gamTestUnitId') && i.payload.passed === 'false'), 10000, 1500),
+    test: [...POLL_OK, ...js(() => {
+      pm.test('Нет записи «Test passed»', () =>
+        pm.expect(pm.response.json().history.filter(h => h.action === 'Test passed')).to.have.length(0));
+    })] }),
+  req('GAM-05 · POST /api/units/{id}/test/attempts · вторая попытка → 201', 'POST', `${B}/api/units/{{gamTestUnitId}}/test/attempts`, {
+    as: 'learner', test: saveId('gamAttempt2') }),
+  req('GAM-05 · POST …/attempts/{id}/submit · верный ответ → 200', 'POST', `${B}/api/units/{{gamTestUnitId}}/test/attempts/{{gamAttempt2}}/submit`, {
+    as: 'learner', json: '{ "answers": { "{{gamQuestionId}}": 0 } }',
+    test: js(() => { pm.test('Тест сдан', () => pm.expect(pm.response.json().passed).to.eql(true)); }) }),
+  req('GAM-05 · GET /api/gamification/me · сданный тест дал +20 → 200', 'GET', ME, { as: 'learner',
+    pre: waitFor(ME, 'learnerToken', me => me.history.some(h => h.action === 'Test passed')),
+    test: [...POLL_OK, ...js(() => {
+      const passed = pm.response.json().history.filter(h => h.action === 'Test passed');
+      pm.test('Одна запись «Test passed» на 20 очков', () => {
+        pm.expect(passed).to.have.length(1);
+        pm.expect(passed[0].points).to.eql(20);
+      });
+    })] }),
+
   req('GAM-15 · POST /api/gamification/settings/reset · instructor → 403', 'POST', `${G}/settings/reset`, { as: 'instructor' }),
   req('GAM-15 · POST /api/gamification/settings/reset · значения по умолчанию → 200', 'POST', `${G}/settings/reset`, { as: 'admin',
     test: js(() => {
@@ -781,6 +944,32 @@ const gamification = folder('05 gamification-service',
     }) }),
   req('GAM-16 · GET /api/gamification/leaderboard · рейтинг пуст → 200', 'GET', `${G}/leaderboard`, { as: 'learner',
     test: js(() => { pm.test('top = []', () => pm.expect(pm.response.json().top).to.eql([])); }) }),
+
+  // --- §1.4: N1–N8 для всех путей сервиса (запросы с отказом не меняют данные: до сервиса они не доходят) ---
+  sweep('NEG-GAM · N1', 'без токена', 401, withAuth(GAM_PATHS, 'none')),
+  sweep('NEG-GAM · N2', 'мусорный токен', 401, withAuth(GAM_PATHS, 'garbage')),
+  sweep('NEG-GAM · N3', 'испорченная подпись', 401, withAuth(GAM_PATHS, 'broken')),
+  sweep('NEG-GAM · N4', 'роль ниже требуемой', 403, [
+    { m: 'GET', p: '/api/gamification/settings', auth: 'instructor' },
+    { m: 'PUT', p: '/api/gamification/settings', auth: 'instructor', body: {} },
+    { m: 'POST', p: '/api/gamification/settings/reset', auth: 'instructor' },
+    { m: 'POST', p: '/api/gamification/reset-statistics', auth: 'instructor' },
+    { m: 'GET', p: '/api/gamification/settings', auth: 'learner' },
+    { m: 'GET', p: '/api/gamification/users/{{learnerId}}', auth: 'learner' }]),
+  sweep('NEG-GAM · N5', 'несуществующий пользователь', 404, [
+    { m: 'GET', p: `/api/gamification/users/${NO_UUID}`, auth: 'instructor' }]),
+  sweep('NEG-GAM · N6', 'невалидный UUID abc', 400, [
+    { m: 'GET', p: '/api/gamification/users/abc', auth: 'instructor' }]),
+  sweep('NEG-GAM · N7', 'неподдерживаемый метод', 405, [
+    { m: 'POST', p: '/api/gamification/me', auth: 'learner' },
+    { m: 'PATCH', p: '/api/gamification/settings', auth: 'admin', body: {} },
+    { m: 'DELETE', p: '/api/gamification/settings', auth: 'admin' },
+    { m: 'POST', p: '/api/gamification/config', auth: 'learner' },
+    { m: 'POST', p: '/api/gamification/leaderboard', auth: 'learner' },
+    { m: 'POST', p: '/api/gamification/rules', auth: 'learner' },
+    { m: 'GET', p: '/api/gamification/reset-statistics', auth: 'admin' }]),
+  sweep('NEG-GAM · N8', 'тело не JSON', 400, [
+    { m: 'PUT', p: '/api/gamification/settings', auth: 'admin', body: '{enabled: oops' }]),
 ]);
 
 // ======================================================================
@@ -799,6 +988,9 @@ const JWT_LIB = js(() => {
     return data + '.' + sign(data, secret);
   }
   const learnerClaims = () => dec(pm.environment.get('learnerToken').split('.')[1]);
+  // учебный секрет по умолчанию из services/api-gateway/src/main/resources/application.yml (jwt.secret);
+  // если стенд поднят с другим JWT_SECRET, задайте переменную jwtSecret в окружении
+  const jwtSecret = pm.environment.get('jwtSecret') || 'jazzlms-super-secret-key-for-teaching-purposes-only-32b';
 });
 const bearerVar = v => [{ key: 'Authorization', value: `Bearer {{${v}}}` }];
 
@@ -868,12 +1060,12 @@ const security = folder('06 security',
     // контроль: доказывает, что токены ниже ломаются именно тем, что мы испортили, а не сборкой
     pre: [...JWT_LIB, ...js(() => {
       const now = Math.floor(Date.now() / 1000);
-      pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now, exp: now + 3600 }), pm.environment.get('jwtSecret')));
+      pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now, exp: now + 3600 }), jwtSecret));
     })] }),
   req('SEC-03 · GET /api/courses · истёкший токен → 401', 'GET', `${B}/api/courses`, { headers: bearerVar('secToken'),
     pre: [...JWT_LIB, ...js(() => {
       const now = Math.floor(Date.now() / 1000);
-      pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now - 36000, exp: now - 3600 }), pm.environment.get('jwtSecret')));
+      pm.variables.set('secToken', makeJwt(Object.assign(learnerClaims(), { iat: now - 36000, exp: now - 3600 }), jwtSecret));
     })] }),
   req('SEC-03 · GET /api/courses · токен другого секрета → 401', 'GET', `${B}/api/courses`, { headers: bearerVar('secToken'),
     pre: [...JWT_LIB, ...js(() => {
@@ -1007,7 +1199,7 @@ const e2e = folder('07 E2E · E2E-7 Событие проходит через �
 // 99 Teardown · Kantemir
 // ======================================================================
 
-const COURSE_VARS = ['courseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'e2eCourseId'];
+const COURSE_VARS = ['courseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e2eCourseId'];
 
 const teardown = folder('99 Teardown · Kantemir',
   'Возвращает стенд как было: настройки геймификации по умолчанию, тестовые правила писем, курсы и ученик удалены.', [
