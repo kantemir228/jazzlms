@@ -1,0 +1,858 @@
+{
+  "info": {
+    "_postman_id": "47a46b54-a0c2-496f-9589-015f87d6c69a",
+    "name": "JazzLMS API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58925404",
+    "_collection_link": "https://go.postman.co/collection/58925404-47a46b54-a0c2-496f-9589-015f87d6c69a?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "00 Setup",
+      "item": [
+        {
+          "name": "SETUP-01 · POST /api/auth/login · Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"Быстрее 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\n\nconst b = pm.response.json();\npm.test(\"Есть token из 3 частей\", () => {\n  pm.expect(b).to.have.property(\"token\");\n  pm.expect(b.token.split(\".\")).to.have.lengthOf(3);\n});\npm.test(\"user.username = admin, тип SUPER_ADMIN\", () => {\n  pm.expect(b.user.username).to.eql(\"admin\");\n  pm.expect(b.user.userType).to.eql(\"SUPER_ADMIN\");\n});\npm.test(\"Нет passwordHash в ответе\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));\n\npm.environment.set(\"adminToken\", b.token);\npm.environment.set(\"adminId\", b.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"username\": \"admin\", \"password\": \"admin123\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-02 · POST /api/auth/login · Login instructor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Content-Type JSON\", () =>",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+                  "pm.test(\"Быстрее 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Тип TRAINER\", () => pm.expect(b.user.userType).to.eql(\"TRAINER\"));",
+                  "pm.test(\"нет passwordHash\", () =>",
+                  "  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));",
+                  "pm.environment.set(\"instructorToken\", b.token);",
+                  "pm.environment.set(\"instructorId\", b.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"username\": \"instructor\", \"password\": \"instructor123\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-03 · POST /api/users · Создать ученика",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 создан или 409 уже существует\", () =>",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]));",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set(\"learnerId\", pm.response.json().id);",
+                  "}",
+                  "",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get(\"baseUrl\") + \"/api/auth/login\",",
+                  "  method: \"POST\",",
+                  "  header: { \"Content-Type\": \"application/json\" },",
+                  "  body: { mode: \"raw\", raw: JSON.stringify({",
+                  "    username: pm.environment.get(\"learnerUsername\"),",
+                  "    password: pm.environment.get(\"learnerPassword\") }) }",
+                  "}, (err, res) => {",
+                  "  pm.test(\"ученик залогинился, learnerToken записан\", () => {",
+                  "    pm.expect(err).to.be.null;",
+                  "    pm.expect(res.code).to.eql(200);",
+                  "  });",
+                  "  if (!err) pm.environment.set(\"learnerToken\", res.json().token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"username\": \"{{learnerUsername}}\", \"password\": \"{{learnerPassword}}\",\n  \"firstName\": \"Astra\", \"lastName\": \"Learner\",\n  \"email\": \"{{learnerUsername}}@test.local\", \"userType\": \"LEARNER\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 user-service",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "AUTH-01 · POST /api/auth/login · login admin → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"< 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\nconst b = pm.response.json();\npm.test(\"token из 3 частей\", () => pm.expect(b.token.split(\".\")).to.have.lengthOf(3));\npm.test(\"SUPER_ADMIN, mustChangePassword false\", () => {\n  pm.expect(b.user.userType).to.eql(\"SUPER_ADMIN\");\n  pm.expect(b.mustChangePassword).to.eql(false);\n});\npm.test(\"нет passwordHash\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"admin\", \"password\": \"admin123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-01 · POST /api/auth/login · wrong password → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"401\", () => pm.response.to.have.status(401));\npm.test(\"problem+json\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));\nconst b = pm.response.json();\npm.test(\"есть title/status/detail\", () => {\n  pm.expect(b.title).to.be.a(\"string\");\n  pm.expect(b.status).to.eql(401);\n  pm.expect(b.detail).to.be.a(\"string\").and.not.empty;\n});\npm.test(\"detail без stack trace\", () => {\n  pm.expect(b.detail).to.not.include(\"Exception\");\n  pm.expect(b.detail).to.not.include(\"at com.\");\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"admin\", \"password\": \"неверный\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-01 · POST /api/auth/login · empty body → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));\nconst b = pm.response.json();\npm.test(\"status 400 и detail есть\", () => {\n  pm.expect(b.status).to.eql(400);\n  pm.expect(b.detail).to.be.a(\"string\").and.not.empty;\n});",
+                      "",
+                      "pm.test(\"Content-Type problem+json\", () =>",
+                      "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));",
+                      "var pb = pm.response.json();",
+                      "pm.test(\"есть title/status/detail\", () => {",
+                      "  pm.expect(pb.title).to.be.a(\"string\");",
+                      "  pm.expect(pb.status).to.eql(pm.response.code);",
+                      "  pm.expect(pb.detail).to.be.a(\"string\").and.not.empty;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-01 · GET /api/auth/login · GET вместо POST → 405",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"405\", () => pm.response.to.have.status(405));",
+                      "",
+                      "pm.test(\"Content-Type problem+json\", () =>",
+                      "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));",
+                      "var pb = pm.response.json();",
+                      "pm.test(\"есть title/status/detail\", () => {",
+                      "  pm.expect(pb.title).to.be.a(\"string\");",
+                      "  pm.expect(pb.status).to.eql(pm.response.code);",
+                      "  pm.expect(pb.detail).to.be.a(\"string\").and.not.empty;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · register → 201",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.environment.set(\"regUsername\", \"reg_astra_\" + Date.now());"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"201\", () => pm.response.to.have.status(201));\nconst b = pm.response.json();\npm.test(\"token из 3 частей\", () => pm.expect(b.token.split(\".\")).to.have.lengthOf(3));\npm.test(\"userType LEARNER\", () => pm.expect(b.user.userType).to.eql(\"LEARNER\"));\npm.test(\"нет passwordHash\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));\npm.environment.set(\"regToken\", b.token);\npm.environment.set(\"regUsernameSaved\", b.user.username);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"{{regUsername}}\", \"password\": \"pass123\",\n  \"firstName\": \"Reg\", \"lastName\": \"Test\", \"email\": \"{{regUsername}}@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · username короче 3 → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));\npm.test(\"problem+json\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"ab\", \"password\": \"pass123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"ab@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · пароль короче 6 → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"reg_shortpw\", \"password\": \"123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"sp@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · email без @ → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"reg_bademail\", \"password\": \"pass123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"bademail\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · username занят → 409",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"409\", () => pm.response.to.have.status(409));\npm.test(\"problem+json\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"admin\", \"password\": \"pass123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"dupadmin@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-03 · GET /api/auth/settings · settings без токена → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"< 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\nconst b = pm.response.json();\npm.test(\"есть siteName, signupAllowed, termsOfService, visibleUserFormat\", () => {\n  [\"siteName\",\"signupAllowed\",\"termsOfService\",\"visibleUserFormat\"]\n    .forEach(f => pm.expect(b).to.have.property(f));\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-03 · POST /api/auth/settings · POST вместо GET → 405",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"405\", () => pm.response.to.have.status(405));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · смена пароля → 204",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const base = pm.environment.get(\"baseUrl\");\nconst u = \"pwuser_\" + Date.now();\npm.sendRequest({\n  url: base + \"/api/auth/register\",\n  method: \"POST\",\n  header: { \"Content-Type\": \"application/json\" },\n  body: { mode: \"raw\", raw: JSON.stringify({\n    username: u, password: \"old123\", firstName: \"Pw\", lastName: \"Test\",\n    email: u + \"@test.local\" }) }\n}, (err, res) => {\n  if (!err) pm.environment.set(\"pwToken\", res.json().token);\n});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));\npm.test(\"тело пустое\", () => pm.expect(pm.response.text()).to.be.empty);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pwToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"old123\", \"newPassword\": \"new123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · неверный текущий → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"401\", () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{learnerToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"неверный\", \"newPassword\": \"zzz123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · новый = текущему → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"{{learnerPassword}}\", \"newPassword\": \"{{learnerPassword}}\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password?Authorization=Bearer {{learnerToken}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ],
+                  "query": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{learnerToken}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · новый короче 6 → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{learnerToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"{{learnerPassword}}\", \"newPassword\": \"12\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · без токена → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"401\", () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"x\", \"newPassword\": \"yyy123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 course-service",
+      "item": []
+    },
+    {
+      "name": "03 notification-service",
+      "item": []
+    },
+    {
+      "name": "04 analytics-service",
+      "item": []
+    },
+    {
+      "name": "05 gamification-service",
+      "item": []
+    },
+    {
+      "name": "06 security",
+      "item": []
+    },
+    {
+      "name": "07 E2E",
+      "item": []
+    },
+    {
+      "name": "99 Teardown",
+      "item": []
+    }
+  ]
+}

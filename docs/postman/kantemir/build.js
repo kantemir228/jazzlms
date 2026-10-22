@@ -36,13 +36,13 @@ function req(name, method, url, opt = {}) {
   if (opt.form) request.body = { mode: 'formdata', formdata: opt.form };
   const event = [];
   if (opt.pre) event.push({ listen: 'prerequest', script: { type: 'text/javascript', exec: [].concat(...opt.pre) } });
-  if (opt.test) event.push({ listen: 'test', script: { type: 'text/javascript', exec: [].concat(...opt.test) } });
+  // §1.6: у каждого запроса своя вкладка Tests — общие проверки §1.3 и следом собственные проверки запроса
+  event.push({ listen: 'test', script: { type: 'text/javascript', exec: [...COMMON, ...[].concat(...(opt.test || []))] } });
   return { name, event, request };
 }
 
-function folder(name, description, items, withCommon = true) {
-  const event = withCommon ? [{ listen: 'test', script: { type: 'text/javascript', exec: COMMON } }] : [];
-  return { name, description, item: items, event };
+function folder(name, description, items) {
+  return { name, description, item: items };
 }
 
 /** Урок CONTENT с отметкой «прочитал» (CHECKBOX): multipart, часть unit — JSON. */
@@ -56,9 +56,10 @@ const saveId = varName => js(() => {
   pm.environment.set('__VAR__', pm.response.json().id);
 }).map(l => l.replace('__VAR__', varName));
 
-// ---------- общие проверки §1.3 (висят на каждой моей папке) ----------
+// ---------- общие проверки §1.3 (в начале вкладки Tests каждого запроса) ----------
 
-const COMMON = js(() => {
+// В фигурных скобках: переменные общих проверок не пересекаются с переменными проверок самого запроса.
+const COMMON = ['{', ...js(() => {
   // Общие проверки §1.3 чек-листа. Ожидаемый код берётся из конца имени запроса: "… → 201".
   // "→ пропущен gateway" значит: gateway не отказал сам (нет пустого 401/403), дальше решает сервис.
   const m = pm.info.requestName.match(/→\s*(\d{3}|пропущен gateway)\s*$/);
@@ -94,7 +95,7 @@ const COMMON = js(() => {
       }
     }
   }
-});
+}), '}'];
 
 // Опрос (§7): повторяем GET раз в 500 мс, пока check(json) не станет true, но не дольше timeoutMs.
 // Подключается в начало pre-request скриптов, которым нужно дождаться события из Kafka.
@@ -182,7 +183,7 @@ function sweep(id, title, expected, entries) {
   const headers = first.auth === 'garbage' ? [{ key: 'Authorization', value: 'Bearer abc.def.ghi' }]
     : first.auth === 'broken' ? [{ key: 'Authorization', value: 'Bearer {{brokenAdminToken}}' }] : [];
   const as = ['admin', 'instructor', 'learner'].includes(first.auth) ? first.auth : undefined;
-  return req(`${id} · ${title} · ${first.m} ${first.p} и ещё ${rest.length} → ${first.expect || expected}`, first.m, `${B}${first.p}`, {
+  return req(`${id} · ${first.m} ${first.p} и ещё ${rest.length} · ${title} → ${first.expect || expected}`, first.m, `${B}${first.p}`, {
     as, headers, json: first.body,
     pre: SWEEP_PRE.map(l => l.replace('__ENTRIES__', JSON.stringify(rest))),
     test: SWEEP_TEST.map(l => l.replace('__EXPECTED__', expected)) });
@@ -195,9 +196,11 @@ const withAuth = (paths, auth) => paths.map(([m, p, body]) => ({ m, p, body, aut
 // 00 Setup · Kantemir
 // ======================================================================
 
-const setup = folder('00 Setup · Kantemir (временный)',
-  'Логины admin и instructor, новый ученик learner_kantemir_<runId>, курс для тестов. ' +
-  'Временная замена общего Setup (его делает Astra): имена переменных те же, что в §1.1 чек-листа.', [
+// Логины и свой ученик — только для отдельного запуска моих папок. В общей коллекции их делает Setup Astra
+// (SETUP-01…03): она кладёт в окружение те же adminToken, instructorToken, learnerId, learnerToken.
+const soloLogins = folder('Kantemir · логины (только для отдельного запуска)',
+  'Логины admin и instructor и новый ученик learner_kantemir_<runId>. В общей коллекции этой папки нет: ' +
+  'там то же самое делает Setup Astra.', [
   req('SETUP-K-01 · POST /api/auth/login · admin → 200', 'POST', `${B}/api/auth/login`, {
     json: { username: 'admin', password: 'admin123' },
     pre: js(() => {
@@ -221,23 +224,45 @@ const setup = folder('00 Setup · Kantemir (временный)',
     }) }),
   req('SETUP-K-03 · POST /api/users · создать ученика → 201', 'POST', `${B}/api/users`, {
     as: 'admin',
+    pre: js(() => { pm.environment.set('learnerPassword', 'learner123'); }),
     json: { firstName: 'Kantemir', lastName: 'Learner', email: 'learner_k_{{runId}}@test.local',
-      username: 'learner_kantemir_{{runId}}', password: 'learner123', userType: 'LEARNER' },
+      username: 'learner_kantemir_{{runId}}', password: '{{learnerPassword}}', userType: 'LEARNER' },
     test: js(() => {
       const user = pm.response.json();
       pm.test('Создан LEARNER', () => pm.expect(user.userType).to.eql('LEARNER'));
       pm.environment.set('learnerId', user.id);
       pm.environment.set('learnerUsername', user.username);
-      pm.environment.set('learnerEmail', user.email);
     }) }),
   req('SETUP-K-04 · POST /api/auth/login · ученик → 200', 'POST', `${B}/api/auth/login`, {
-    json: { username: '{{learnerUsername}}', password: 'learner123' },
+    json: { username: '{{learnerUsername}}', password: '{{learnerPassword}}' },
     test: js(() => {
       const body = pm.response.json();
       pm.test('Вошёл тот самый ученик', () => pm.expect(body.user.id).to.eql(pm.environment.get('learnerId')));
       pm.environment.set('learnerToken', body.token);
     }) }),
-  req('SETUP-K-05 · POST /api/courses · курс для тестов → 201', 'POST', `${B}/api/courses`, {
+]);
+
+// Работает поверх любого Setup, который положил в окружение токены и learnerId.
+const kSetup = folder('Kantemir',
+  'Что нужно моим папкам сверх общего Setup: runId, email и имя ученика, курс для тестов.', [
+  req('SETUP-K · GET /api/auth/me · email и имя ученика → 200', 'GET', `${B}/api/auth/me`, { as: 'learner',
+    pre: js(() => {
+      // runId делает имена уникальными: коллекцию можно гонять сколько угодно раз подряд
+      pm.environment.set('runId', Date.now().toString(36));
+    }),
+    test: js(() => {
+      const me = pm.response.json();
+      pm.test('Токен ученика рабочий, это LEARNER', () => pm.expect(me.userType).to.eql('LEARNER'));
+      // id берём отсюда, а не из Setup: если ученик остался от упавшего прогона, Setup получает 409
+      // и записывает в learnerId пустое значение, а токен (вход по логину) при этом рабочий
+      if (pm.environment.get('learnerId') !== me.id) {
+        console.warn(`learnerId из Setup (${pm.environment.get('learnerId')}) не совпал с /api/auth/me, беру ${me.id}`);
+      }
+      pm.environment.set('learnerId', me.id);
+      pm.environment.set('learnerEmail', me.email);
+      pm.environment.set('learnerFirstName', me.firstName);
+    }) }),
+  req('SETUP-K · POST /api/courses · курс для тестов → 201', 'POST', `${B}/api/courses`, {
     as: 'instructor', json: { name: 'K course {{runId}}', active: true },
     test: js(() => {
       pm.environment.set('courseId', pm.response.json().id);
@@ -338,7 +363,7 @@ const notification = folder('03 notification-service',
     }) }),
   req('NTF-06 · PUT /api/notifications/{id} · пустое name → 400', 'PUT', `${N}/{{ruleId}}`, { as: 'admin', json: rule({ name: '' }) }),
   req('NTF-06 · PUT /api/notifications/{id} · несуществующий → 404', 'PUT', `${N}/000000000000000000000000`, { as: 'admin', json: rule() }),
-  req('NTF-07 · DELETE /api/notifications/{id} → 204', 'DELETE', `${N}/{{ruleId}}`, { as: 'admin' }),
+  req('NTF-07 · DELETE /api/notifications/{id} · удалить правило → 204', 'DELETE', `${N}/{{ruleId}}`, { as: 'admin' }),
   req('NTF-07 · DELETE /api/notifications/{id} · повторно → 404', 'DELETE', `${N}/{{ruleId}}`, { as: 'admin' }),
 
   // --- NTF-08: событие USER_ENROLLED -> письмо ученику по правилу из сидера ---
@@ -362,7 +387,7 @@ const notification = folder('03 notification-service',
       });
       pm.test('Плейсхолдеры подставлены: {{courseName}} и {{firstName}}', () => {
         pm.expect(msg.subject).to.eql(`You were added to "${pm.environment.get('ntfCourseName')}"`);
-        pm.expect(msg.body).to.include('Hi Kantemir');
+        pm.expect(msg.body).to.include(`Hi ${pm.environment.get('learnerFirstName')}`);
         pm.expect(msg.body).to.not.include('{{');
       });
     })] }),
@@ -411,7 +436,7 @@ const notification = folder('03 notification-service',
 
   // --- NTF-10/11: очистка истории не трогает очередь ---
   req('NTF-10 · DELETE /api/notifications/history · learner → 403', 'DELETE', `${N}/history`, { as: 'learner' }),
-  req('NTF-10 · DELETE /api/notifications/history → 204', 'DELETE', `${N}/history`, { as: 'admin' }),
+  req('NTF-10 · DELETE /api/notifications/history · очистить историю → 204', 'DELETE', `${N}/history`, { as: 'admin' }),
   req('NTF-10 · GET /api/notifications/history · после очистки пусто → 200', 'GET', `${N}/history`, { as: 'admin',
     test: js(() => { pm.test('История пуста', () => pm.expect(pm.response.json()).to.eql([])); }) }),
   req('NTF-10 · GET /api/notifications/pending · очередь не тронута → 200', 'GET', `${N}/pending`, { as: 'admin',
@@ -494,7 +519,7 @@ const analytics = folder('04 analytics-service',
   req('ANL-01 · GET /api/analytics/timeline · instructor → 200', 'GET', `${A}/timeline`, { as: 'instructor' }),
   req('ANL-01 · GET /api/analytics/timeline · learner → 403', 'GET', `${A}/timeline`, { as: 'learner' }),
   req('ANL-01 · GET /api/analytics/timeline · без токена → 401', 'GET', `${A}/timeline`),
-  req('ANL-02 · GET /api/analytics/timeline?type=USER_LOGGED_IN → 200', 'GET', `${A}/timeline?type=USER_LOGGED_IN&size=50`, { as: 'admin',
+  req('ANL-02 · GET /api/analytics/timeline?type=USER_LOGGED_IN · только входы → 200', 'GET', `${A}/timeline?type=USER_LOGGED_IN&size=50`, { as: 'admin',
     test: js(() => {
       const items = pm.response.json().items;
       pm.test('Есть хотя бы один вход', () => pm.expect(items.length).to.be.above(0));
@@ -520,7 +545,7 @@ const analytics = folder('04 analytics-service',
       // зафиксировано по факту: from > to даёт пустую страницу, а не 400
       pm.test('total = 0, items = []', () => { pm.expect(pm.response.json().total).to.eql(0); pm.expect(pm.response.json().items).to.eql([]); });
     }) }),
-  req('ANL-05 · GET /api/analytics/timeline?page=0&size=5 → 200', 'GET', `${A}/timeline?page=0&size=5`, { as: 'admin',
+  req('ANL-05 · GET /api/analytics/timeline?page=0&size=5 · первая страница → 200', 'GET', `${A}/timeline?page=0&size=5`, { as: 'admin',
     test: js(() => {
       const items = pm.response.json().items;
       pm.test('Не больше 5 событий', () => pm.expect(items.length).to.be.at.most(5));
@@ -534,7 +559,7 @@ const analytics = folder('04 analytics-service',
     }) }),
   req('ANL-05 · GET /api/analytics/timeline?size=1000 · ограничено 100 → 200', 'GET', `${A}/timeline?size=1000`, { as: 'admin',
     test: js(() => { pm.test('size урезан до 100', () => pm.expect(pm.response.json().size).to.eql(100)); }) }),
-  req('ANL-05 · GET /api/analytics/timeline?page=-1 → 400', 'GET', `${A}/timeline?page=-1`, { as: 'admin' }),
+  req('ANL-05 · GET /api/analytics/timeline?page=-1 · отрицательная страница → 400', 'GET', `${A}/timeline?page=-1`, { as: 'admin' }),
   req('ANL-06 · GET /api/analytics/timeline/export?userId= · CSV → 200', 'GET', `${A}/timeline/export?userId={{learnerId}}`, { as: 'admin',
     test: js(() => {
       const ct = pm.response.headers.get('Content-Type');
@@ -568,7 +593,7 @@ const analytics = folder('04 analytics-service',
     `${A}/timeline?userId={{learnerId}}&type=USER_LOGGED_IN&size=1`, { as: 'admin',
     test: js(() => { pm.environment.set('anlUserLogins0', pm.response.json().total); }) }),
   req('ANL-prep · POST /api/auth/login · ученик входит ещё раз → 200', 'POST', `${B}/api/auth/login`, {
-    json: { username: '{{learnerUsername}}', password: 'learner123' },
+    json: { username: '{{learnerUsername}}', password: '{{learnerPassword}}' },
     test: js(() => { pm.environment.set('learnerToken', pm.response.json().token); }) }),
   req('ANL-13 · GET /api/analytics/timeline · вход записан ровно один раз → 200', 'GET',
     `${A}/timeline?userId={{learnerId}}&type=USER_LOGGED_IN&size=1`, { as: 'admin',
@@ -587,7 +612,7 @@ const analytics = folder('04 analytics-service',
         pm.expect(pm.response.json().today.logins.value).to.eql(Number(pm.environment.get('anlLogins0')) + 1));
     })] }),
 
-  req('ANL-08 · GET /api/analytics/overview → 200', 'GET', `${A}/overview`, { as: 'admin',
+  req('ANL-08 · GET /api/analytics/overview · события по типам → 200', 'GET', `${A}/overview`, { as: 'admin',
     test: js(() => {
       const o = pm.response.json();
       pm.test('eventsByType: число событий по типам', () => pm.expect(o.eventsByType.USER_LOGGED_IN).to.be.above(0));
@@ -604,7 +629,7 @@ const analytics = folder('04 analytics-service',
         });
       }).map(l => l.replace(/__N__/g, points)) })),
   req('ANL-09 · GET /api/analytics/dashboard?period=year · неизвестный период → 400', 'GET', `${A}/dashboard?period=year`, { as: 'admin' }),
-  req('ANL-10 · GET /api/analytics/top-users?limit=3 → 200', 'GET', `${A}/top-users?limit=3`, { as: 'admin',
+  req('ANL-10 · GET /api/analytics/top-users?limit=3 · топ-3 активных → 200', 'GET', `${A}/top-users?limit=3`, { as: 'admin',
     test: js(() => {
       const top = pm.response.json();
       pm.test('Не больше 3', () => pm.expect(top.length).to.be.at.most(3));
@@ -722,18 +747,21 @@ const gamification = folder('05 gamification-service',
       pm.test('Это профиль самого ученика', () => pm.expect(me.userId).to.eql(pm.environment.get('learnerId')));
     }) }),
   req('GAM-01 · GET /api/gamification/me · без токена → 401', 'GET', ME),
-  req('GAM-02 · GET /api/gamification/me · первый вход дал +10 и бейдж newcomer → 200', 'GET', ME, { as: 'learner',
+  req('GAM-02 · GET /api/gamification/me · первый вход за день дал +10 и бейдж newcomer → 200', 'GET', ME, { as: 'learner',
     test: js(() => {
       const me = pm.response.json();
-      const signIns = me.history.filter(h => h.action === 'Sign in');
-      pm.test('Одна запись «Sign in» на 10 очков', () => {
+      // в note записи «Sign in» лежит день входа (UTC): ученик из общего Setup мог входить и в другие дни
+      const today = new Date().toISOString().slice(0, 10);
+      const signIns = me.history.filter(h => h.action === 'Sign in' && h.note === today);
+      pm.test('Сегодня одна запись «Sign in» на 10 очков', () => {
         pm.expect(signIns).to.have.length(1);
         pm.expect(signIns[0].points).to.eql(10);
       });
       pm.test('Бейдж newcomer', () => pm.expect(me.badges.map(b => b.code)).to.include('newcomer'));
+      pm.environment.set('gamLogins', me.logins);
     }) }),
   req('GAM-02 · POST /api/auth/login · ещё один вход в тот же день → 200', 'POST', `${B}/api/auth/login`, {
-    json: { username: '{{learnerUsername}}', password: 'learner123' },
+    json: { username: '{{learnerUsername}}', password: '{{learnerPassword}}' },
     pre: js(() => { pm.environment.set('gamMark', new Date().toISOString()); }),
     test: js(() => { pm.environment.set('learnerToken', pm.response.json().token); }) }),
   req('GAM-02 · GET /api/gamification/me · повторный вход за день очков не даёт → 200', 'GET', ME, { as: 'learner',
@@ -742,9 +770,10 @@ const gamification = folder('05 gamification-service',
       page => page.items.length && page.items[0].occurredAt > pm.environment.get('gamMark'), 10000, 1500),
     test: [...POLL_OK, ...js(() => {
       const me = pm.response.json();
-      pm.test('Всё ещё одна запись «Sign in», logins = 1', () => {
-        pm.expect(me.history.filter(h => h.action === 'Sign in')).to.have.length(1);
-        pm.expect(me.logins).to.eql(1);
+      const today = new Date().toISOString().slice(0, 10);
+      pm.test('Сегодня всё ещё одна запись «Sign in», счётчик дней входа не вырос', () => {
+        pm.expect(me.history.filter(h => h.action === 'Sign in' && h.note === today)).to.have.length(1);
+        pm.expect(me.logins).to.eql(Number(pm.environment.get('gamLogins')));
       });
     })] }),
 
@@ -766,7 +795,7 @@ const gamification = folder('05 gamification-service',
     }) }),
   req('GAM-06 · GET /api/gamification/users/{id} · learner → 403', 'GET', `${G}/users/{{learnerId}}`, { as: 'learner' }),
   req('GAM-06 · GET /api/gamification/users/{id} · невалидный UUID abc → 400', 'GET', `${G}/users/abc`, { as: 'instructor' }),
-  req('GAM-07 · GET /api/gamification/leaderboard?by=points&limit=3 → 200', 'GET', `${G}/leaderboard?by=points&limit=3`, { as: 'learner',
+  req('GAM-07 · GET /api/gamification/leaderboard?by=points&limit=3 · топ-3 по очкам → 200', 'GET', `${G}/leaderboard?by=points&limit=3`, { as: 'learner',
     test: js(() => {
       const board = pm.response.json();
       pm.test('Не больше 3 строк', () => pm.expect(board.top.length).to.be.at.most(3));
@@ -787,7 +816,7 @@ const gamification = folder('05 gamification-service',
     }) }),
   req('GAM-07 · GET /api/gamification/leaderboard?limit=100 · не больше 50 → 200', 'GET', `${G}/leaderboard?limit=100`, { as: 'learner',
     test: js(() => { pm.test('top ≤ 50', () => pm.expect(pm.response.json().top.length).to.be.at.most(50)); }) }),
-  req('GAM-08 · GET /api/gamification/rules → 200', 'GET', `${G}/rules`, { as: 'learner',
+  req('GAM-08 · GET /api/gamification/rules · правила и бейджи → 200', 'GET', `${G}/rules`, { as: 'learner',
     test: js(() => {
       const r = pm.response.json();
       pm.test('points[], levels[], badges[]', () => ['points', 'levels', 'badges'].forEach(k => pm.expect(r[k], k).to.be.an('array')));
@@ -796,7 +825,7 @@ const gamification = folder('05 gamification-service',
         pm.expect(r.badges.find(b => b.code === 'master').earned).to.eql(false);
       });
     }) }),
-  req('GAM-09 · GET /api/gamification/config → 200', 'GET', `${G}/config`, { as: 'learner',
+  req('GAM-09 · GET /api/gamification/config · настройки для интерфейса → 200', 'GET', `${G}/config`, { as: 'learner',
     test: js(() => {
       const c = pm.response.json();
       pm.test('enabled, points, badges, levels — флаги', () => ['enabled', 'points', 'badges', 'levels'].forEach(k => pm.expect(c[k], k).to.be.a('boolean')));
@@ -932,7 +961,7 @@ const gamification = folder('05 gamification-service',
       });
     }) }),
   req('GAM-16 · POST /api/gamification/reset-statistics · instructor → 403', 'POST', `${G}/reset-statistics`, { as: 'instructor' }),
-  req('GAM-16 · POST /api/gamification/reset-statistics → 204', 'POST', `${G}/reset-statistics`, { as: 'admin' }),
+  req('GAM-16 · POST /api/gamification/reset-statistics · обнулить статистику → 204', 'POST', `${G}/reset-statistics`, { as: 'admin' }),
   req('GAM-16 · GET /api/gamification/me · очки обнулены → 200', 'GET', ME, { as: 'learner',
     test: js(() => {
       const me = pm.response.json();
@@ -1100,12 +1129,13 @@ const security = folder('06 security',
     req(`SEC-04 · ${method} ${p} · ${role} → ${!allowed[i] ? '403' : method === 'GET' ? '200' : 'пропущен gateway'}`, method, `${B}${p}`, {
       as: role, json: body === null ? undefined : body }))),
 
-  req('SEC-05 · GET /api/courses · 60 запросов за секунду → часть 429 → 200', 'GET', `${B}/api/courses`, { as: 'learner',
+  req('SEC-05 · GET /api/courses · 120 запросов разом → часть 429 → 200', 'GET', `${B}/api/courses`, { as: 'learner',
     pre: js(() => {
-      // 60 запросов разом одним токеном; лимит gateway: 20 в секунду, всплеск до 40
+      // 120 запросов разом одним токеном; лимит gateway: всплеск до 40 и 20 в секунду. Ровно 60 — на границе:
+      // если стенд «холодный» и запросы растянулись на секунду, лимит успевает пополниться и 429 не будет
       const codes = {};
-      let left = 60;
-      for (let i = 0; i < 60; i++) {
+      let left = 120;
+      for (let i = 0; i < 120; i++) {
         pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/courses'),
           header: { Authorization: 'Bearer ' + pm.environment.get('learnerToken') } }, (err, res) => {
           const c = err ? 'error' : res.code;
@@ -1138,7 +1168,7 @@ const security = folder('06 security',
 // 07 E2E-7
 // ======================================================================
 
-const e2e = folder('07 E2E · E2E-7 Событие проходит через все сервисы',
+const e2e = folder('E2E-7 · Событие проходит через все сервисы',
   'Порядок запросов важен. Ученик проходит единственный урок курса — одно действие порождает ' +
   'UNIT_COMPLETED, COURSE_COMPLETED и CERTIFICATE_ISSUED, которые должны дойти до аналитики, писем и очков. ' +
   'Шаги 4–6 чек-листа (повторная доставка через Kafka UI, остановка gamification-service, Grafana) выполняются вручную ' +
@@ -1157,7 +1187,7 @@ const e2e = folder('07 E2E · E2E-7 Событие проходит через �
     as: 'instructor', json: { userId: '{{learnerId}}' } }),
   req('E2E-7 · 05 · GET /api/gamification/me · запомнить очки → 200', 'GET', ME, { as: 'learner',
     test: js(() => { pm.environment.set('e2eP0', pm.response.json().points); }) }),
-  req('E2E-7 · 06 · POST /api/units/{id}/start → 200', 'POST', `${B}/api/units/{{e2eUnitId}}/start`, { as: 'learner' }),
+  req('E2E-7 · 06 · POST /api/units/{id}/start · открыть урок → 200', 'POST', `${B}/api/units/{{e2eUnitId}}/start`, { as: 'learner' }),
   req('E2E-7 · 07 · POST /api/units/{id}/complete · урок и курс пройдены → 200', 'POST', `${B}/api/units/{{e2eUnitId}}/complete`, {
     as: 'learner', json: {} }),
   req('E2E-7 · 08 · GET /api/analytics/timeline · три события курса за 10 с → 200', 'GET',
@@ -1203,7 +1233,7 @@ const e2e = folder('07 E2E · E2E-7 Событие проходит через �
 
 const COURSE_VARS = ['courseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e2eCourseId'];
 
-const teardown = folder('99 Teardown · Kantemir',
+const teardown = folder('Kantemir',
   'Возвращает стенд как было: настройки геймификации по умолчанию, тестовые правила писем, курсы и ученик удалены.', [
   req('TD-K · POST /api/gamification/settings/reset · настройки по умолчанию → 200', 'POST', `${G}/settings/reset`, { as: 'admin' }),
   req('TD-K · GET /api/notifications · тестовых правил не осталось → 200', 'GET', N, { as: 'admin',
@@ -1230,19 +1260,35 @@ const teardown = folder('99 Teardown · Kantemir',
 
 // ======================================================================
 
-const collection = {
-  info: {
-    name: 'JazzLMS API · Kantemir',
-    description: 'Папки Kantemir: notification, analytics, gamification, безопасность gateway, E2E-7. ' +
-      'Собрано скриптом docs/postman/kantemir/build.js — правьте его и пересобирайте, а не JSON руками.',
-    schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-  },
-  item: [setup, notification, analytics, gamification, security, e2e, teardown],
+// Части для общей коллекции (docs/postman/merge.js): папки 03–06 целиком, остальное — подпапками
+// в общие 00 Setup, 07 E2E и 99 Teardown.
+const parts = {
+  '00': [kSetup], '03': notification, '04': analytics, '05': gamification, '06': security, '07': [e2e], '99': [teardown],
 };
+module.exports = { parts };
 
-const out = path.join(__dirname, 'JazzLMS-kantemir.postman_collection.json');
-fs.writeFileSync(out, JSON.stringify(collection, null, 2) + '\n');
-const count = f => f.item.length;
-console.log(`OK: ${out}`);
-collection.item.forEach(f => console.log(`  ${String(count(f)).padStart(3)}  ${f.name}`));
-console.log(`  ${String(collection.item.reduce((s, f) => s + count(f), 0)).padStart(3)}  всего запросов`);
+/** Сколько запросов в папке, считая вложенные подпапки. */
+const countRequests = f => f.item.reduce((s, i) => s + (i.item ? countRequests(i) : 1), 0);
+
+if (require.main === module) {
+  // Отдельная коллекция: свои логины вместо Setup Astra, остальное — как в общей.
+  const collection = {
+    info: {
+      name: 'JazzLMS API · Kantemir',
+      description: 'Папки Kantemir: notification, analytics, gamification, безопасность gateway, E2E-7. ' +
+        'Собрано скриптом docs/postman/kantemir/build.js — правьте его и пересобирайте, а не JSON руками.',
+      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+    },
+    item: [
+      folder('00 Setup', 'Логины и данные для тестов.', [soloLogins, kSetup]),
+      notification, analytics, gamification, security,
+      folder('07 E2E', 'Сквозные сценарии.', [e2e]),
+      folder('99 Teardown', 'Уборка после прогона.', [teardown]),
+    ],
+  };
+  const out = path.join(__dirname, 'JazzLMS-kantemir.postman_collection.json');
+  fs.writeFileSync(out, JSON.stringify(collection, null, 2) + '\n');
+  console.log(`OK: ${out}`);
+  collection.item.forEach(f => console.log(`  ${String(countRequests(f)).padStart(3)}  ${f.name}`));
+  console.log(`  ${String(countRequests({ item: collection.item })).padStart(3)}  всего запросов`);
+}

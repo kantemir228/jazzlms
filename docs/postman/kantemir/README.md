@@ -1,6 +1,6 @@
 # API-тесты Kantemir: notification, analytics, gamification, безопасность, E2E-7
 
-Здесь лежит часть коллекции Postman по `API_TEST_CHECKLIST.md` (§5, §6, E2E-7): 295 запросов, 1236 проверок.
+Здесь лежит часть коллекции Postman по `API_TEST_CHECKLIST.md` (§5, §6, E2E-7): 292 запроса и 1219 проверок в общей коллекции (там вместе с частью Astra 299 запросов и 1242 проверки).
 
 | Файл | Что это |
 |---|---|
@@ -8,7 +8,27 @@
 | `JazzLMS-kantemir.postman_collection.json` | Готовая коллекция для импорта в Postman. Руками не правится, только через `build.js` |
 | `../JazzLMS-local.postman_environment.json` | Окружение `JazzLMS local`: адреса gateway и сервисов. Токены пустые, их заполняет Setup |
 
-## Как запустить
+## Общая коллекция команды
+
+`docs/postman/merge.js` собирает одну коллекцию `docs/postman/JazzLMS.postman_collection.json`, как требует §8.1.
+Основа — экспорт каркаса Astra из `docs/postman/team/astra.postman_collection.json`.
+В него вставляются мои папки: 03–06 целиком, а в 00 Setup, 07 E2E и 99 Teardown — подпапки `Kantemir`.
+
+```bash
+node docs/postman/merge.js
+```
+
+```bash
+newman run docs/postman/JazzLMS.postman_collection.json -e docs/postman/JazzLMS-local.postman_environment.json --reporters cli,htmlextra --reporter-htmlextra-export newman-report.html
+```
+
+В общей коллекции ученика создаёт Setup Astra: логин и пароль берутся из `learnerUsername` и `learnerPassword` в окружении.
+Мои папки сами ничего не знают о том, чей это ученик: email и имя они берут из `GET /api/auth/me`.
+Подпапка `99 Teardown / Kantemir` в конце удаляет ученика, поэтому Setup Astra на следующем прогоне создаёт его заново.
+
+Когда сдаст кто-то ещё: экспорт его папки кладётся в `docs/postman/team/`, а в `PARTS` в `merge.js` дописывается одна строка.
+
+## Как запустить отдельно
 
 Стенд должен быть поднят с нуля:
 
@@ -31,17 +51,19 @@ newman run docs/postman/kantemir/JazzLMS-kantemir.postman_collection.json -e doc
 
 В PowerShell список репортёров нужно взять в кавычки: `--reporters "cli,htmlextra"`.
 
-В Postman: Import → оба файла, справа сверху выбрать окружение `JazzLMS local`, папка → Run.
-Папку `00 Setup · Kantemir` нужно запускать первой: она логинит роли и создаёт ученика `learner_kantemir_<runId>`.
+В Postman: Import → оба файла, справа сверху выбрать окружение `JazzLMS local`, коллекция → Run.
+Папку `00 Setup` нужно запускать первой. В отдельной коллекции её подпапка `Kantemir · логины` логинит роли
+и создаёт своего ученика `learner_kantemir_<runId>` вместо Setup Astra.
 
 ## Как устроены проверки
 
 - **Ожидаемый код записан в конце имени запроса**: `NTF-05 · POST /api/notifications · пустое name → 400`.
-  Общий скрипт папки (вкладка Tests у папки) читает его оттуда и проверяет всё из §1.3:
+  Общие проверки стоят в начале вкладки Tests **каждого** запроса (§1.6). `build.js` вписывает их сам,
+  поэтому в исходнике они написаны один раз. Они читают код из имени запроса и проверяют всё из §1.3:
   - для позитивных запросов — код, `Content-Type`, время ответа меньше 1500 мс, отсутствие `passwordHash`;
   - для негативных — `application/problem+json` с полями `title`, `status`, `detail` и отсутствие stack trace в `detail`.
 
-  Во вкладке Tests самого запроса остаются только его собственные проверки.
+  После общих проверок во вкладке Tests идут собственные проверки запроса.
 - **Негативы §1.4 (N1–N8) для каждого эндпоинта** — запросы `NEG-NTF`, `NEG-ANL`, `NEG-GAM` в конце папок сервисов.
   Как разрешает §1.4, это не сотни запросов, а один запрос на каждый вид негатива для всего сервиса.
   Например, `NEG-NTF · N1 · без токена` вызывает сам первый путь, а остальные 10 путей сервиса отправляет из pre-request.
@@ -115,7 +137,7 @@ docker compose start gamification-service
 
 ## Найденные дефекты
 
-Прогоны стабильны: три прогона подряд дали одинаковые 42 красные проверки в 22 запросах из 295.
+Прогоны стабильны: три прогона общей коллекции подряд, первый сразу после перезапуска gateway, дали одинаковые 42 красные проверки в 22 запросах.
 Каждая красная проверка — один из дефектов ниже: некоторые дефекты видны в нескольких запросах,
 например NTF-11 и в NTF-11, и в NEG-NTF N5/N6.
 
