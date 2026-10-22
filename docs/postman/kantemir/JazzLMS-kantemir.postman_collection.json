@@ -6631,7 +6631,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/users · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/users · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6645,7 +6645,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/users · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/users · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6753,7 +6753,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/settings · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/settings · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6847,7 +6847,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/branches · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/branches · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6861,7 +6861,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/branches · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/branches · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6941,7 +6941,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses · learner → пропущен gateway",
+          "name": "SEC-04 · GET /api/courses · learner → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6955,7 +6955,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/courses · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -6969,7 +6969,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/courses · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7053,7 +7053,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses/deleted · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/courses/deleted · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7081,7 +7081,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7095,7 +7095,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7179,7 +7179,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/notifications · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/notifications · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7207,7 +7207,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/analytics/timeline · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/analytics/timeline · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7221,7 +7221,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/analytics/timeline · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/analytics/timeline · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7263,7 +7263,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/gamification/settings · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/gamification/settings · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7277,7 +7277,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/gamification/me · learner → пропущен gateway",
+          "name": "SEC-04 · GET /api/gamification/me · learner → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7291,7 +7291,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/gamification/me · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/gamification/me · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7305,7 +7305,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/gamification/me · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/gamification/me · admin → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7333,7 +7333,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/certificates/templates · instructor → пропущен gateway",
+          "name": "SEC-04 · GET /api/certificates/templates · instructor → 200",
           "event": [],
           "request": {
             "method": "GET",
@@ -7347,7 +7347,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/certificates/templates · admin → пропущен gateway",
+          "name": "SEC-04 · GET /api/certificates/templates · admin → 200",
           "event": [],
           "request": {
             "method": "GET",

@@ -1094,8 +1094,10 @@ const security = folder('06 security',
 
   req('SEC-prep · POST /api/courses/{id}/units · урок для матрицы → 201', 'POST', `${B}/api/courses/{{courseId}}/units`, {
     as: 'instructor', form: unitForm('K sec unit {{runId}}'), test: saveId('secUnitId') }),
+  // разрешённый GET обязан вернуть ровно 200; разрешённые POST идут с пустым телом, чтобы не создавать записи,
+  // поэтому для них проверяем только то, что gateway пропустил запрос (дальше сервис отвечает 400/409/201)
   ...MATRIX.flatMap(([method, p, body, allowed]) => ['learner', 'instructor', 'admin'].map((role, i) =>
-    req(`SEC-04 · ${method} ${p} · ${role} → ${allowed[i] ? 'пропущен gateway' : '403'}`, method, `${B}${p}`, {
+    req(`SEC-04 · ${method} ${p} · ${role} → ${!allowed[i] ? '403' : method === 'GET' ? '200' : 'пропущен gateway'}`, method, `${B}${p}`, {
       as: role, json: body === null ? undefined : body }))),
 
   req('SEC-05 · GET /api/courses · 60 запросов за секунду → часть 429 → 200', 'GET', `${B}/api/courses`, { as: 'learner',
