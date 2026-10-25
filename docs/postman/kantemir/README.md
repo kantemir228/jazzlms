@@ -129,6 +129,10 @@ docker compose start gamification-service
 
 ### Результат ручных шагов (22.10.2026, чистый стенд)
 
+| Kafka UI: событие в `enrollment-events` | Zipkin: один запрос через 3 сервиса |
+|---|---|
+| ![Kafka UI](screenshots/kafka.png) | ![Zipkin](screenshots/zipkin.png) |
+
 | Шаг | Результат |
 |---|---|
 | Redis / Mongo | `ZSCORE leaderboard:points` = 190, профиль в `gamification_db.profiles` = 190, ответ API = 190 — совпадает ✅ |

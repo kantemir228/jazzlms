@@ -48,7 +48,10 @@ newman run docs/postman/JazzLMS.postman_collection.json -e docs/postman/JazzLMS-
 сборка ничего не сломала, а красные — найденные дефекты (их Issues) или замечания ниже.
 Пропущенные проверки — известные дефекты, которые авторы пометили сами (`strictGatewayErrors` и т. п.).
 
-HTML-отчёт: `docs/postman/reports/newman-report.html` (в git не кладётся — в нём токены тестовых пользователей;
+HTML-отчёт: `docs/postman/reports/newman-report.html`, его первая страница — ![отчёт Newman](kantemir/screenshots/newman-report.png).
+htmlextra считает чуть иначе: 3565 проверок — без 132 пропущенных, а в «Failed Tests» (258) входят и ошибки запросов.
+
+Сам отчёт (в git не кладётся — в нём токены тестовых пользователей;
 прикладывается к PR файлом).
 
 ## Замечания по частям
