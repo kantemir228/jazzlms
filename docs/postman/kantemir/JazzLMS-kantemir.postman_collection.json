@@ -472,7 +472,7 @@
                   "  }",
                   "}",
                   "}",
-                  "pm.environment.set('courseId', pm.response.json().id);",
+                  "pm.environment.set('kCourseId', pm.response.json().id);",
                   "pm.environment.set('kCourseName', pm.response.json().name);"
                 ]
               }
@@ -986,6 +986,15 @@
           "name": "NTF-05 · POST /api/notifications · валидное правило → 201",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1070,6 +1079,15 @@
           "name": "NTF-05 · POST /api/notifications · пустое name → 400",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1145,6 +1163,15 @@
           "name": "NTF-05 · POST /api/notifications · eventType = XXX → 400",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1218,6 +1245,15 @@
         {
           "name": "NTF-05 · POST /api/notifications · delayMinutes = -1 → 400",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1293,6 +1329,15 @@
         {
           "name": "NTF-05 · POST /api/notifications · без subjectTemplate → 400",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1442,6 +1487,15 @@
           "name": "NTF-05 · POST /api/notifications · instructor → 403",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1515,6 +1569,15 @@
         {
           "name": "NTF-05 · POST /api/notifications · learner → 403",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1863,6 +1926,15 @@
           "name": "NTF-06 · PUT /api/notifications/{id} · выключить правило → 200",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -1941,6 +2013,15 @@
           "name": "NTF-06 · PUT /api/notifications/{id} · пустое name → 400",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -2014,6 +2095,15 @@
         {
           "name": "NTF-06 · PUT /api/notifications/{id} · несуществующий → 404",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -2541,6 +2631,15 @@
           "name": "NTF-09 · POST /api/notifications · правило с задержкой 60 мин → 201",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -2932,6 +3031,15 @@
         {
           "name": "NTF-12 · POST /api/notifications · шаблон с неизвестным {{foo}} → 201",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -11179,7 +11287,9 @@
                   "const me = pm.response.json();",
                   "const expected = Math.min(20, Math.max(1 + Math.floor(me.points / 50), 1 + Math.floor(me.courses / 5), 1 + Math.floor(me.badges.length / 5)));",
                   "pm.test(`level = ${expected} (1 + очки / 50)`, () => pm.expect(me.level).to.eql(expected));",
-                  "pm.test('nextLevelPoints = level × 50', () => pm.expect(me.nextLevelPoints).to.eql(me.level * 50));"
+                  "// на последнем, 20-м уровне следующего нет: сервер отдаёт null (в общей коллекции ученик набирает много очков)",
+                  "pm.test('nextLevelPoints = level × 50, на 20-м уровне — null', () =>",
+                  "  pm.expect(me.nextLevelPoints).to.eql(me.level >= 20 ? null : me.level * 50));"
                 ]
               }
             }
@@ -11852,8 +11962,10 @@
                   "}",
                   "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
                   "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
-                  "pm.test('Нет записи «Test passed»', () =>",
-                  "  pm.expect(pm.response.json().history.filter(h => h.action === 'Test passed')).to.have.length(0));"
+                  "// ученик общий: в части Ainura он сдаёт свои тесты, поэтому ищем записи только про этот тест (note = имя теста)",
+                  "const mine = h => h.action === 'Test passed' && (h.note || '').startsWith(`K gam test ${pm.environment.get('runId')}`);",
+                  "pm.test('Нет записи «Test passed» по этому тесту', () =>",
+                  "  pm.expect(pm.response.json().history.filter(mine)).to.have.length(0));"
                 ]
               }
             }
@@ -12032,7 +12144,7 @@
                   "    });",
                   "  })();",
                   "}",
-                  "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.history.some(h => h.action === 'Test passed'), 10000, (ok, ms) => {",
+                  "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.history.some(h => h.action === 'Test passed'\n      && (h.note || '').startsWith(`K gam test ${pm.environment.get('runId')}`)), 10000, (ok, ms) => {",
                   "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                   "",
                   "});"
@@ -12089,8 +12201,9 @@
                   "}",
                   "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
                   "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
-                  "const passed = pm.response.json().history.filter(h => h.action === 'Test passed');",
-                  "pm.test('Одна запись «Test passed» на 20 очков', () => {",
+                  "const passed = pm.response.json().history.filter(h => h.action === 'Test passed'",
+                  "  && (h.note || '').startsWith(`K gam test ${pm.environment.get('runId')}`));",
+                  "pm.test('По этому тесту одна запись «Test passed» на 20 очков', () => {",
                   "  pm.expect(passed).to.have.length(1);",
                   "  pm.expect(passed[0].points).to.eql(20);",
                   "});"
@@ -18361,7 +18474,7 @@
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · learner → 403",
+          "name": "SEC-04 · GET /api/courses/{{kCourseId}}/questions · learner → 403",
           "event": [
             {
               "listen": "test",
@@ -18423,11 +18536,11 @@
                 "value": "Bearer {{learnerToken}}"
               }
             ],
-            "url": "{{baseUrl}}/api/courses/{{courseId}}/questions"
+            "url": "{{baseUrl}}/api/courses/{{kCourseId}}/questions"
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · instructor → 200",
+          "name": "SEC-04 · GET /api/courses/{{kCourseId}}/questions · instructor → 200",
           "event": [
             {
               "listen": "test",
@@ -18489,11 +18602,11 @@
                 "value": "Bearer {{instructorToken}}"
               }
             ],
-            "url": "{{baseUrl}}/api/courses/{{courseId}}/questions"
+            "url": "{{baseUrl}}/api/courses/{{kCourseId}}/questions"
           }
         },
         {
-          "name": "SEC-04 · GET /api/courses/{{courseId}}/questions · admin → 200",
+          "name": "SEC-04 · GET /api/courses/{{kCourseId}}/questions · admin → 200",
           "event": [
             {
               "listen": "test",
@@ -18555,7 +18668,7 @@
                 "value": "Bearer {{adminToken}}"
               }
             ],
-            "url": "{{baseUrl}}/api/courses/{{courseId}}/questions"
+            "url": "{{baseUrl}}/api/courses/{{kCourseId}}/questions"
           }
         },
         {
@@ -20871,6 +20984,15 @@
               "name": "E2E-7 · 01 · POST /api/notifications · правило на COURSE_COMPLETED → 201",
               "event": [
                 {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });"
+                    ]
+                  }
+                },
+                {
                   "listen": "test",
                   "script": {
                     "type": "text/javascript",
@@ -21968,7 +22090,7 @@
               }
             },
             {
-              "name": "TD-K · DELETE /api/courses/{courseId} · в корзину → 204",
+              "name": "TD-K · DELETE /api/courses/{kCourseId} · в корзину → 204",
               "event": [
                 {
                   "listen": "test",
@@ -22030,11 +22152,11 @@
                     "value": "Bearer {{instructorToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{courseId}}"
+                "url": "{{baseUrl}}/api/courses/{{kCourseId}}"
               }
             },
             {
-              "name": "TD-K · DELETE /api/courses/{courseId}/permanent · навсегда → 204",
+              "name": "TD-K · DELETE /api/courses/{kCourseId}/permanent · навсегда → 204",
               "event": [
                 {
                   "listen": "test",
@@ -22096,7 +22218,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{courseId}}/permanent"
+                "url": "{{baseUrl}}/api/courses/{{kCourseId}}/permanent"
               }
             },
             {

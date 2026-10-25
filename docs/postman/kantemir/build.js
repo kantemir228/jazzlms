@@ -35,7 +35,13 @@ function req(name, method, url, opt = {}) {
   }
   if (opt.form) request.body = { mode: 'formdata', formdata: opt.form };
   const event = [];
-  if (opt.pre) event.push({ listen: 'prerequest', script: { type: 'text/javascript', exec: [].concat(...opt.pre) } });
+  // {{courseName}}, {{firstName}}, {{foo}} в шаблонах писем подставляет сервер. Если такая переменная есть
+  // в окружении (courseName кладёт, например, часть Nazgul), Postman подставит её сам ещё до отправки —
+  // поэтому перед такими запросами убираем эти имена из всех областей переменных.
+  const templated = request.body && /\{\{(courseName|firstName|foo)\}\}/.test(request.body.raw || '');
+  const pre = [...(templated ? [`['courseName', 'firstName', 'foo'].forEach(k => { pm.environment.unset(k); pm.collectionVariables.unset(k); pm.globals.unset(k); });`] : []),
+    ...[].concat(...(opt.pre || []))];
+  if (pre.length) event.push({ listen: 'prerequest', script: { type: 'text/javascript', exec: pre } });
   // §1.6: у каждого запроса своя вкладка Tests — общие проверки §1.3 и следом собственные проверки запроса.
   // gatewayError: ответ формирует сам gateway; при strictGatewayErrors = false (договорённость команды, Issue #2)
   // проверки его формата пропускаются — код ответа проверяется всегда.
@@ -284,7 +290,7 @@ const kSetup = folder('Kantemir',
   req('SETUP-K · POST /api/courses · курс для тестов → 201', 'POST', `${B}/api/courses`, {
     as: 'instructor', json: { name: 'K course {{runId}}', active: true },
     test: js(() => {
-      pm.environment.set('courseId', pm.response.json().id);
+      pm.environment.set('kCourseId', pm.response.json().id);
       pm.environment.set('kCourseName', pm.response.json().name);
     }) }),
 ]);
@@ -918,7 +924,9 @@ const gamification = folder('05 gamification-service',
       const me = pm.response.json();
       const expected = Math.min(20, Math.max(1 + Math.floor(me.points / 50), 1 + Math.floor(me.courses / 5), 1 + Math.floor(me.badges.length / 5)));
       pm.test(`level = ${expected} (1 + очки / 50)`, () => pm.expect(me.level).to.eql(expected));
-      pm.test('nextLevelPoints = level × 50', () => pm.expect(me.nextLevelPoints).to.eql(me.level * 50));
+      // на последнем, 20-м уровне следующего нет: сервер отдаёт null (в общей коллекции ученик набирает много очков)
+      pm.test('nextLevelPoints = level × 50, на 20-м уровне — null', () =>
+        pm.expect(me.nextLevelPoints).to.eql(me.level >= 20 ? null : me.level * 50));
     })] }),
   req('GAM-04 · GET /api/gamification/me · курс дал +100 и бейдж graduate → 200', 'GET', ME, { as: 'learner',
     test: js(() => {
@@ -953,8 +961,10 @@ const gamification = folder('05 gamification-service',
     pre: waitFor(`${A}/timeline?userId={{learnerId}}&type=TEST_COMPLETED&size=5`, 'adminToken',
       page => page.items.some(i => i.payload.unitId === pm.environment.get('gamTestUnitId') && i.payload.passed === 'false'), 10000, 1500),
     test: [...POLL_OK, ...js(() => {
-      pm.test('Нет записи «Test passed»', () =>
-        pm.expect(pm.response.json().history.filter(h => h.action === 'Test passed')).to.have.length(0));
+      // ученик общий: в части Ainura он сдаёт свои тесты, поэтому ищем записи только про этот тест (note = имя теста)
+      const mine = h => h.action === 'Test passed' && (h.note || '').startsWith(`K gam test ${pm.environment.get('runId')}`);
+      pm.test('Нет записи «Test passed» по этому тесту', () =>
+        pm.expect(pm.response.json().history.filter(mine)).to.have.length(0));
     })] }),
   req('GAM-05 · POST /api/units/{id}/test/attempts · вторая попытка → 201', 'POST', `${B}/api/units/{{gamTestUnitId}}/test/attempts`, {
     as: 'learner', test: saveId('gamAttempt2') }),
@@ -962,10 +972,12 @@ const gamification = folder('05 gamification-service',
     as: 'learner', json: '{ "answers": { "{{gamQuestionId}}": 0 } }',
     test: js(() => { pm.test('Тест сдан', () => pm.expect(pm.response.json().passed).to.eql(true)); }) }),
   req('GAM-05 · GET /api/gamification/me · сданный тест дал +20 → 200', 'GET', ME, { as: 'learner',
-    pre: waitFor(ME, 'learnerToken', me => me.history.some(h => h.action === 'Test passed')),
+    pre: waitFor(ME, 'learnerToken', me => me.history.some(h => h.action === 'Test passed'
+      && (h.note || '').startsWith(`K gam test ${pm.environment.get('runId')}`))),
     test: [...POLL_OK, ...js(() => {
-      const passed = pm.response.json().history.filter(h => h.action === 'Test passed');
-      pm.test('Одна запись «Test passed» на 20 очков', () => {
+      const passed = pm.response.json().history.filter(h => h.action === 'Test passed'
+        && (h.note || '').startsWith(`K gam test ${pm.environment.get('runId')}`));
+      pm.test('По этому тесту одна запись «Test passed» на 20 очков', () => {
         pm.expect(passed).to.have.length(1);
         pm.expect(passed[0].points).to.eql(20);
       });
@@ -1068,7 +1080,7 @@ const MATRIX = [
   ['GET', '/api/courses', null, [true, true, true]],
   ['POST', '/api/courses/{{secEnrollCourseId}}/enroll', null, [true, true, true]],
   ['GET', '/api/courses/deleted', null, [false, false, true]],
-  ['GET', '/api/courses/{{courseId}}/questions', null, [false, true, true]],
+  ['GET', '/api/courses/{{kCourseId}}/questions', null, [false, true, true]],
   ['POST', '/api/units/{{secTestUnitId}}/test/attempts', null, [true, true, true]],
   ['GET', '/api/notifications', null, [false, false, true]],
   ['GET', '/api/analytics/timeline', null, [false, true, true]],
@@ -1296,7 +1308,7 @@ const e2e = folder('E2E-7 · Событие проходит через все �
 // 99 Teardown · Kantemir
 // ======================================================================
 
-const COURSE_VARS = ['courseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e2eCourseId'];
+const COURSE_VARS = ['kCourseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e2eCourseId'];
 
 const teardown = folder('Kantemir',
   'Возвращает стенд как было: настройки геймификации по умолчанию, тестовые правила писем и курсы удалены.', [

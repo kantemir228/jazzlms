@@ -1,0 +1,3763 @@
+{
+  "info": {
+    "_postman_id": "195fa41e-8199-432d-b6ba-2ee7389d9c14",
+    "name": "JazzLMS API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58954791",
+    "_collection_link": "https://go.postman.co/collection/58954791-195fa41e-8199-432d-b6ba-2ee7389d9c14?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "00 Setup",
+      "item": [
+        {
+          "name": "SETUP-01 · POST /api/auth/login · Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"Быстрее 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\n\nconst b = pm.response.json();\npm.test(\"Есть token из 3 частей\", () => {\n  pm.expect(b).to.have.property(\"token\");\n  pm.expect(b.token.split(\".\")).to.have.lengthOf(3);\n});\npm.test(\"user.username = admin, тип SUPER_ADMIN\", () => {\n  pm.expect(b.user.username).to.eql(\"admin\");\n  pm.expect(b.user.userType).to.eql(\"SUPER_ADMIN\");\n});\npm.test(\"Нет passwordHash в ответе\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));\n\npm.environment.set(\"adminToken\", b.token);\npm.environment.set(\"adminId\", b.user.id);\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"username\": \"admin\", \"password\": \"admin123\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-02 · POST /api/auth/login · Login instructor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Content-Type JSON\", () =>",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+                  "pm.test(\"Быстрее 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Тип TRAINER\", () => pm.expect(b.user.userType).to.eql(\"TRAINER\"));",
+                  "pm.test(\"нет passwordHash\", () =>",
+                  "  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));",
+                  "pm.environment.set(\"instructorToken\", b.token);",
+                  "pm.environment.set(\"instructorId\", b.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"username\": \"instructor\", \"password\": \"instructor123\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-03 · POST /api/users · Создать ученика",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 создан или 409 уже существует\", () =>\n  pm.expect(pm.response.code).to.be.oneOf([201, 409]));\n\nif (pm.response.code === 201) {\n  pm.environment.set(\"learnerId\", pm.response.json().id);\n}\n\npm.sendRequest({\n  url: pm.environment.get(\"baseUrl\") + \"/api/auth/login\",\n  method: \"POST\",\n  header: { \"Content-Type\": \"application/json\" },\n  body: { mode: \"raw\", raw: JSON.stringify({\n    username: pm.environment.get(\"learnerUsername\"),\n    password: pm.environment.get(\"learnerPassword\") }) }\n}, (err, res) => {\n  pm.test(\"ученик залогинился, learnerToken записан\", () => {\n    pm.expect(err).to.be.null;\n    pm.expect(res.code).to.eql(200);\n  });\n  if (!err) pm.environment.set(\"learnerToken\", res.json().token);\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"username\": \"{{learnerUsername}}\", \"password\": \"{{learnerPassword}}\",\n  \"firstName\": \"Astra\", \"lastName\": \"Learner\",\n  \"email\": \"{{learnerUsername}}@test.local\", \"userType\": \"LEARNER\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "01 user-service",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "AUTH-01 · POST /api/auth/login · login admin → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"< 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\nconst b = pm.response.json();\npm.test(\"token из 3 частей\", () => pm.expect(b.token.split(\".\")).to.have.lengthOf(3));\npm.test(\"SUPER_ADMIN, mustChangePassword false\", () => {\n  pm.expect(b.user.userType).to.eql(\"SUPER_ADMIN\");\n  pm.expect(b.mustChangePassword).to.eql(false);\n});\npm.test(\"нет passwordHash\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"admin\", \"password\": \"admin123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-01 · POST /api/auth/login · wrong password → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"401\", () => pm.response.to.have.status(401));\npm.test(\"problem+json\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));\nconst b = pm.response.json();\npm.test(\"есть title/status/detail\", () => {\n  pm.expect(b.title).to.be.a(\"string\");\n  pm.expect(b.status).to.eql(401);\n  pm.expect(b.detail).to.be.a(\"string\").and.not.empty;\n});\npm.test(\"detail без stack trace\", () => {\n  pm.expect(b.detail).to.not.include(\"Exception\");\n  pm.expect(b.detail).to.not.include(\"at com.\");\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"admin\", \"password\": \"неверный\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-01 · POST /api/auth/login · empty body → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));\nconst b = pm.response.json();\npm.test(\"status 400 и detail есть\", () => {\n  pm.expect(b.status).to.eql(400);\n  pm.expect(b.detail).to.be.a(\"string\").and.not.empty;\n});",
+                      "",
+                      "pm.test(\"Content-Type problem+json\", () =>",
+                      "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));",
+                      "var pb = pm.response.json();",
+                      "pm.test(\"есть title/status/detail\", () => {",
+                      "  pm.expect(pb.title).to.be.a(\"string\");",
+                      "  pm.expect(pb.status).to.eql(pm.response.code);",
+                      "  pm.expect(pb.detail).to.be.a(\"string\").and.not.empty;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-01 · GET /api/auth/login · GET вместо POST → 405",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"405\", () => pm.response.to.have.status(405));",
+                      "",
+                      "pm.test(\"Content-Type problem+json\", () =>",
+                      "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));",
+                      "var pb = pm.response.json();",
+                      "pm.test(\"есть title/status/detail\", () => {",
+                      "  pm.expect(pb.title).to.be.a(\"string\");",
+                      "  pm.expect(pb.status).to.eql(pm.response.code);",
+                      "  pm.expect(pb.detail).to.be.a(\"string\").and.not.empty;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · register → 201",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.environment.set(\"regUsername\", \"reg_astra_\" + Date.now());"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"201\", () => pm.response.to.have.status(201));\nconst b = pm.response.json();\npm.test(\"token из 3 частей\", () => pm.expect(b.token.split(\".\")).to.have.lengthOf(3));\npm.test(\"userType LEARNER\", () => pm.expect(b.user.userType).to.eql(\"LEARNER\"));\npm.test(\"нет passwordHash\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));\npm.environment.set(\"regToken\", b.token);\npm.environment.set(\"regUsernameSaved\", b.user.username);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"{{regUsername}}\", \"password\": \"pass123\",\n  \"firstName\": \"Reg\", \"lastName\": \"Test\", \"email\": \"{{regUsername}}@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · username короче 3 → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));\npm.test(\"problem+json\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"ab\", \"password\": \"pass123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"ab@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · пароль короче 6 → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"reg_shortpw\", \"password\": \"123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"sp@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · email без @ → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"reg_bademail\", \"password\": \"pass123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"bademail\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-02 · POST /api/auth/register · username занят → 409",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"409\", () => pm.response.to.have.status(409));\npm.test(\"problem+json\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"username\": \"admin\", \"password\": \"pass123\", \"firstName\": \"A\", \"lastName\": \"B\", \"email\": \"dupadmin@test.local\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-03 · GET /api/auth/settings · settings без токена → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"< 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\nconst b = pm.response.json();\npm.test(\"есть siteName, signupAllowed, termsOfService, visibleUserFormat\", () => {\n  [\"siteName\",\"signupAllowed\",\"termsOfService\",\"visibleUserFormat\"]\n    .forEach(f => pm.expect(b).to.have.property(f));\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-03 · POST /api/auth/settings · POST вместо GET → 405",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"405\", () => pm.response.to.have.status(405));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · смена пароля → 204",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const base = pm.environment.get(\"baseUrl\");\nconst u = \"pwuser_\" + Date.now();\npm.sendRequest({\n  url: base + \"/api/auth/register\",\n  method: \"POST\",\n  header: { \"Content-Type\": \"application/json\" },\n  body: { mode: \"raw\", raw: JSON.stringify({\n    username: u, password: \"old123\", firstName: \"Pw\", lastName: \"Test\",\n    email: u + \"@test.local\" }) }\n}, (err, res) => {\n  if (!err) pm.environment.set(\"pwToken\", res.json().token);\n});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));\npm.test(\"тело пустое\", () => pm.expect(pm.response.text()).to.be.empty);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{pwToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"old123\", \"newPassword\": \"new123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · неверный текущий → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"401\", () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{learnerToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"неверный\", \"newPassword\": \"zzz123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · новый = текущему → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"{{learnerPassword}}\", \"newPassword\": \"{{learnerPassword}}\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password?Authorization=Bearer {{learnerToken}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ],
+                  "query": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{learnerToken}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · новый короче 6 → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{learnerToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"{{learnerPassword}}\", \"newPassword\": \"12\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "AUTH-04 · POST /api/auth/password · без токена → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"401\", () => pm.response.to.have.status(401));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"currentPassword\": \"x\", \"newPassword\": \"yyy123\" }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "password"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Users",
+          "item": [
+            {
+              "name": "USR-01 · GET /api/users · admin → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. У каждого пользователя есть обязательные поля\r\npm.test(\"У каждого пользователя есть обязательные поля\", function () {\r\n    users.forEach(function (user) {\r\n        pm.expect(user).to.have.property(\"id\");\r\n        pm.expect(user).to.have.property(\"username\");\r\n        pm.expect(user).to.have.property(\"email\");\r\n        pm.expect(user).to.have.property(\"userType\");\r\n        pm.expect(user).to.have.property(\"active\");\r\n        pm.expect(user).to.have.property(\"createdAt\");\r\n    });\r\n});\r\n    // 6. Нет поля passwordHash\r\n    pm.test(\"У каждого пользователя нет поля passwordHash\", function () {\r\n    users.forEach(function (user) {\r\n        pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n\r\n    });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users?active=false · только неактивные",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Только неактивные пользователи\r\npm.test(\"Только неактивные пользователи\", function () {\r\n    users.forEach(function (user) {\r\n        pm.expect(user.active).to.equal(false);\r\n    });\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users?active=false",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "active",
+                      "value": "false"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users?search=lora · находит совпадения",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список не пуст\r\npm.test(\"Список не пуст\", function () {\r\n        pm.expect(users).to.not.be.empty;\r\n    });\r\n\r\n//6. Каждый Элемент содежжит lora\r\npm.test(\"Каждый элемент содержит 'lora'\", function () {\r\n     users.forEach(function(user) {\r\n    const text = (user.username + \" \" + user.email + \" \" + user.firstName + \" \" + user.lastName).toLowerCase()\r\n    pm.expect(text).to.include(\"lora\");\r\n     }); \r\n});   "
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users?search=lora",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "lora"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users?search=LORA · регистр не важен",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список не пуст\r\npm.test(\"Список не пуст\", function () {\r\n        pm.expect(users).to.not.be.empty;\r\n    });\r\n\r\n//6. Каждый Элемент содежжит LORA\r\npm.test(\"Каждый элемент содержит 'lora' (без учёта регистра)\", function () {\r\n     users.forEach(function(user) {\r\n    const text = (user.username + \" \" + user.email + \" \" + user.firstName + \" \" + user.lastName).toLowerCase()\r\n    pm.expect(text).to.include(\"lora\");\r\n     }); \r\n});   "
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users?search=LORA",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "LORA"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users?search= · пустой поиск → полный список",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список не пуст\r\npm.test(\"Список не пуст\", function () {\r\n        pm.expect(users).to.not.be.empty;\r\n    });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users?search=",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users · instructor → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. У каждого пользователя есть обязательные поля\r\npm.test(\"У каждого пользователя есть обязательные поля\", function () {\r\n    users.forEach(function (user) {\r\n        pm.expect(user).to.have.property(\"id\");\r\n        pm.expect(user).to.have.property(\"username\");\r\n        pm.expect(user).to.have.property(\"email\");\r\n        pm.expect(user).to.have.property(\"userType\");\r\n        pm.expect(user).to.have.property(\"active\");\r\n        pm.expect(user).to.have.property(\"createdAt\");\r\n    });\r\n});\r\n    // 6. Нет поля passwordHash\r\n    pm.test(\"У каждого пользователя нет поля passwordHash\", function () {\r\n    users.forEach(function (user) {\r\n        pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n\r\n    });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{instructorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users · learner → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n     pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{learnerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-02 · GET /api/users/stats · admin → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n// получить тело ответа\r\nconst stats = pm.response.json();\r\n\r\n// 4. total — число\r\npm.test(\"total — число\", function () {\r\n    pm.expect(stats.total).to.be.a(\"number\");\r\n});\r\n//5. active — число\r\npm.test(\"active — число\", function () {\r\n    pm.expect(stats.active).to.be.a(\"number\");\r\n});\r\n// 6. total >= active\r\npm.test(\"total >= active\", function () {\r\n    pm.expect(stats.total).to.be.at.least(stats.active);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/stats",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-02 · GET /api/users/stats · learner → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n     pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{learnerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-04 · GET /api/users/{id} · admin свой id → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. id совпадает с запрошенным\r\npm.test(\"id совпадает с запрошенным\", function () {\r\n    pm.expect(user.id).to.equal(pm.environment.get(\"adminId\"));\r\n});\r\n\r\n// 5. Нет поля passwordHash\r\npm.test(\"Нет поля passwordHash\", function () {\r\n    pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{adminId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{adminId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-04 · GET /api/users/{id} · instructor смотрит ученика → 200",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "USR-04 · GET /api/users/{id} · admin свой id → 200",
+                  "host": [
+                    "USR-04 · GET "
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{id} · admin свой id → 200"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · полное тело, LEARNER → 201",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 201\r\npm.test(\"Статус 201\", function () {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. id в формате UUID\r\npm.test(\"id в формате UUID\", function () {\r\n    pm.expect(user.id).to.match(/^[0-9a-f-]{36}$/);\r\n});\r\n\r\n// 5. createdAt в формате даты ISO\r\npm.test(\"createdAt в формате ISO\", function () {\r\n    pm.expect(user.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);\r\n});\r\n\r\n// 6. active = true\r\npm.test(\"active = true\", function () {\r\n    pm.expect(user.active).to.equal(true);\r\n});\r\n\r\n// 7. Нет passwordHash\r\npm.test(\"Нет поля passwordHash\", function () {\r\n    pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n\r\n// сохранить id нового пользователя\r\npm.environment.set(\"newUserId\", user.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · userType = TRAINER → 201",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 201\r\npm.test(\"Статус 201\", function () {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. id в формате UUID\r\npm.test(\"id в формате UUID\", function () {\r\n    pm.expect(user.id).to.match(/^[0-9a-f-]{36}$/);\r\n});\r\n\r\n// 5. createdAt в формате даты ISO\r\npm.test(\"createdAt в формате ISO\", function () {\r\n    pm.expect(user.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);\r\n});\r\n\r\n// 6. active = true\r\npm.test(\"active = true\", function () {\r\n    pm.expect(user.active).to.equal(true);\r\n});\r\n\r\n// 7. Нет passwordHash\r\npm.test(\"Нет поля passwordHash\", function () {\r\n    pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n// 8. userType = TRAINER\r\npm.test(\"userType = TRAINER\", function () {\r\n    pm.expect(user.userType).to.equal(\"TRAINER\");\r\n});\r\n// сохранить id нового пользователя\r\npm.environment.set(\"newUserId\", user.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"TRAINER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · повтор username → 409",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1.  Статус 409 (конфликт))\r\npm.test(\"Статус 409\", function () {\r\n    pm.response.to.have.status(409);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"admin\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · повтор email → 409",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1.  Статус 409 (конфликт))\r\npm.test(\"Статус 409\", function () {\r\n    pm.response.to.have.status(409);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"admin@jazzlms.local\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · bio 801 символ → 400",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");\r\n// имя из 51 символа (буква \"a\" повторена 51 раз)\r\npm.environment.set(\"longName\", \"a\".repeat(51));\r\npm.environment.set(\"longBio\", \"a\".repeat(801));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)\r\npm.test(\"Статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\",\r\n    \"bio\": \"{{longBio}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · firstName 51 символ → 400",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");\r\n// имя из 51 символа (буква \"a\" повторена 51 раз)\r\npm.environment.set(\"longName\", \"a\".repeat(51));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)\r\npm.test(\"Статус 409\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"{{longName}}\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · userType = KING → 400",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)\r\npm.test(\"Статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"KING\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · instructor → 403",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{instructorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · learner → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{learnerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · active = false → 201",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 201\r\npm.test(\"Статус 201\", function () {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. id в формате UUID\r\npm.test(\"id в формате UUID\", function () {\r\n    pm.expect(user.id).to.match(/^[0-9a-f-]{36}$/);\r\n});\r\n\r\n// 5. createdAt в формате даты ISO\r\npm.test(\"createdAt в формате ISO\", function () {\r\n    pm.expect(user.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);\r\n});\r\n\r\n// 6. active = false\r\npm.test(\"active = false\", function () {\r\n    pm.expect(user.active).to.equal(false); \r\n});\r\n\r\n// 7. Нет passwordHash\r\npm.test(\"Нет поля passwordHash\", function () {\r\n    pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n\r\n// сохранить id нового пользователя\r\npm.environment.set(\"newUserId\", user.id);\r\npm.environment.set(\"inactiveUsername\", user.username);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"Inactive\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"password\": \"test123\",\r\n    \"userType\": \"LEARNER\",\r\n    \"active\": false\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/auth/login · неактивный пользователь → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 401 (неавторизован)\r\npm.test(\"Статус 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});\r\n// 5. В detail есть слово deactivated\r\npm.test(\"В detail есть слово deactivated\", function () {\r\n    pm.expect(json.detail).to.include(\"deactivated\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"username\": \"{{inactiveUsername}}\",\r\n    \"password\": \"test123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/auth/login",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/users · без password → 201",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальное число (текущее время в миллисекундах)\r\nconst rnd = Date.now();\r\n\r\n// сохранить уникальные username и email\r\npm.environment.set(\"newUsername\", \"user_\" + rnd);\r\npm.environment.set(\"newEmail\", \"user_\" + rnd + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 201\r\npm.test(\"Статус 201\", function () {\r\n    pm.response.to.have.status(201);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. id в формате UUID\r\npm.test(\"id в формате UUID\", function () {\r\n    pm.expect(user.id).to.match(/^[0-9a-f-]{36}$/);\r\n});\r\n\r\n// 5. createdAt в формате даты ISO\r\npm.test(\"createdAt в формате ISO\", function () {\r\n    pm.expect(user.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);\r\n});\r\n\r\n// 6. active = true\r\npm.test(\"active = true\", function () {\r\n    pm.expect(user.active).to.equal(true); \r\n});\r\n\r\n// 7. Нет passwordHash\r\npm.test(\"Нет поля passwordHash\", function () {\r\n    pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n\r\n// сохранить id нового пользователя\r\npm.environment.set(\"newUserId\", user.id);\r\npm.environment.set(\"noPassUsername\", user.username);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"NoPassword\",\r\n    \"email\": \"{{newEmail}}\",\r\n    \"username\": \"{{newUsername}}\",\r\n    \"userType\": \"LEARNER\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-03 · POST /api/auth/login · без password, пустой пароль → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 401 (неавторизован)\r\npm.test(\"Статус 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});\r\n"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"username\": \"{{noPassUsername}}\",\r\n    \"password\": \"\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/auth/login",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · сменить firstName → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n//4 firstName изменился“\r\npm.test(\"user.firstName=Changed\", function () {\r\n    pm.expect(user.firstName).to.equal(\"Changed\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Changed\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · частичное тело (только bio) → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. bio изменилось\r\npm.test(\"bio изменилось\", function () {\r\n    pm.expect(user.bio).to.equal(\"Новое био\");\r\n});\r\n\r\n// 5. Остальные поля не обнулились\r\npm.test(\"Остальные поля не обнулились\", function () {\r\n    pm.expect(user.firstName).to.equal(\"Changed\");\r\n    pm.expect(user.lastName).to.equal(\"NoPassword\");\r\n    pm.expect(user.username).to.equal(pm.environment.get(\"newUsername\"));\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"bio\": \"Новое био\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · сменить email на свободный → 200",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.environment.set(\"freeEmail\", \"free_\" + Date.now() + \"@test.local\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 4. email изменился\r\npm.test(\"email изменился\", function () {\r\n    pm.expect(user.email).to.equal(pm.environment.get(\"freeEmail\"));\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"{{freeEmail}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · сменить email на занятый → 409",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 409 (конфликт)\r\npm.test(\"Статус 409\", function () {\r\n    pm.response.to.have.status(409);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"admin@jazzlms.local\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · сменить пароль → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 2. Нет passwordHash\r\npm.test(\"Нет поля passwordHash\", function () {\r\n    pm.expect(user).to.not.have.property(\"passwordHash\");\r\n});\r\n\r\n// сохранить username для логина с новым паролем\r\npm.environment.set(\"pwdUsername\", user.username);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"password\": \"newpass123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · POST /api/auth/login · новый пароль → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst json = pm.response.json();\r\n\r\n// 2. В ответе есть токен\r\npm.test(\"В ответе есть token\", function () {\r\n    pm.expect(json).to.have.property(\"token\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"username\": \"{{pwdUsername}}\",\r\n    \"password\": \"newpass123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/auth/login",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · active = false → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 2. active = false\r\npm.test(\"active = false\", function () {\r\n    pm.expect(user.active).to.equal(false);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"active\": false\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · POST /api/auth/login · после деактивации → 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 401 (неавторизован)\r\npm.test(\"Статус 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n//4. „status совпадает с кодом ответа“\r\npm.test(\"Status совпадает с кодом ответа\" , function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});\r\n// 5. В detail есть слово deactivated\r\npm.test(\"В detail есть слово deactivated\", function () {\r\n    pm.expect(json.detail).to.include(\"deactivated\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"username\": \"{{pwdUsername}}\",\r\n    \"password\": \"newpass123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/auth/login",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · userType = ADMIN от instructor → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{instructorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"userType\": \"ADMIN\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/{{learnerId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{learnerId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · PUT /api/users/{id} · N5 несуществующий → 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 404 (не найдено)\r\npm.test(\"Статус 404\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Test\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-05 · GET /api/users/{id} · после PUT данные свежие → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst user = pm.response.json();\r\n\r\n// 2. Данные свежие: видны все изменения из PUT\r\npm.test(\"Данные свежие после PUT\", function () {\r\n    pm.expect(user.firstName).to.equal(\"Changed\");\r\n    pm.expect(user.email).to.equal(pm.environment.get(\"freeEmail\"));\r\n    pm.expect(user.active).to.equal(false);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-06 · DELETE /api/users/{id} · обычный пользователь → 204",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 204 (удалено, тело пустое)\r\npm.test(\"Статус 204\", function () {\r\n    pm.response.to.have.status(204);\r\n});\r\n\r\n// 2. Тело ответа пустое\r\npm.test(\"Тело ответа пустое\", function () {\r\n    pm.expect(pm.response.text()).to.be.empty;\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-06 · GET /api/users/{id} · после удаления → 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 404 (не найдено)\r\npm.test(\"Статус 404\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-06 · DELETE /api/users/{id} · повторный DELETE → 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 404 (не найдено)\r\npm.test(\"Статус 404\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{newUserId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{newUserId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-06 · DELETE /api/users/{id} · SUPER_ADMIN → 409",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 409 (конфликт)\r\npm.test(\"Статус 409\", function () {\r\n    pm.response.to.have.status(409);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});\r\n// 5. В detail сказано, что SuperAdmin удалить нельзя\r\npm.test(\"В detail есть Cannot delete SuperAdmin\", function () {\r\n    pm.expect(json.detail).to.include(\"Cannot delete SuperAdmin\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/{{adminId}}",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{adminId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-06 · DELETE /api/users/{id} · instructor → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{instructorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/{{adminId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{adminId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-06 · DELETE /api/users/{id} · N5 несуществующий → 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 404 (не найдено)\r\npm.test(\"Статус 404\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-07 · GET /api/users/export · admin → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Content-Type: text/csv\r\npm.test(\"Content-Type содержит text/csv\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\");\r\n});\r\n\r\n// 3. Content-Disposition: файл users.csv\r\npm.test(\"Content-Disposition: attachment; filename=users.csv\", function () {\r\n    const cd = pm.response.headers.get(\"Content-Disposition\");\r\n    pm.expect(cd).to.include(\"attachment\");\r\n    pm.expect(cd).to.include(\"users.csv\");\r\n});\r\n\r\n// получить текст ответа\r\nconst text = pm.response.text();\r\n\r\n// 4. Файл начинается с BOM (байты EF BB BF)\r\npm.test(\"Начинается с BOM\", function () {\r\n    const bytes = pm.response.stream;\r\n    pm.expect(bytes[0]).to.equal(0xEF);\r\n    pm.expect(bytes[1]).to.equal(0xBB);\r\n    pm.expect(bytes[2]).to.equal(0xBF);\r\n});\r\n\r\n// 5. Первая строка — заголовки\r\npm.test(\"Первая строка — заголовки\", function () {\r\n    const firstLine = text.split(\"\\n\")[0];\r\n    pm.expect(firstLine).to.include(\"username\");\r\n    pm.expect(firstLine).to.include(\"email\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/export",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "export"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-07 · GET /api/users/export?active=false · только неактивные",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить строки файла (без пустых строк в конце)\r\nconst lines = pm.response.text().trim().split(/\\r?\\n/);\r\n\r\n// заголовки и номер колонки active\r\nconst header = lines[0].replace(\"\\uFEFF\", \"\").split(\",\");\r\nconst activeIndex = header.indexOf(\"active\");\r\n\r\n// 2. В заголовках есть колонка active\r\npm.test(\"Есть колонка active\", function () {\r\n    pm.expect(activeIndex).to.be.at.least(0);\r\n});\r\n\r\n// строки с данными (все, кроме первой)\r\nconst rows = lines.slice(1);\r\n\r\n// 3. В файле есть хотя бы одна строка\r\npm.test(\"Есть хотя бы один пользователь\", function () {\r\n    pm.expect(rows).to.not.be.empty;\r\n});\r\n\r\n// 4. 4. У всех active = false\r\npm.test(\"Все пользователи неактивны\", function () {\r\n    rows.forEach(function (row) {\r\n        const value = row.split(\",\")[activeIndex].replace(/\"/g, \"\");\r\n        pm.expect(value).to.equal(\"false\");\r\n    });\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/export?active=false",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "export"
+                  ],
+                  "query": [
+                    {
+                      "key": "active",
+                      "value": "false"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-07 · подготовка · GET /api/users/stats · сохранить total",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// сохранить total\r\nconst stats = pm.response.json();\r\npm.environment.set(\"statsTotal\", stats.total);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/stats",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-07 · GET /api/users/export · число строк = total из stats",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// строки файла без заголовка\r\nconst lines = pm.response.text().trim().split(/\\r?\\n/);\r\nconst rowsCount = lines.length - 1;\r\n\r\n// 2. Число строк совпадает с total из stats\r\npm.test(\"Число строк = total из stats\", function () {\r\n    pm.expect(rowsCount).to.equal(Number(pm.environment.get(\"statsTotal\")));\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users/export",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "export"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · CSV из 3 валидных строк → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst result = pm.response.json();\r\n\r\n// 2. Создано 3, пропущенных нет\r\npm.test(\"created = 3, skipped пустой\", function () {\r\n    pm.expect(result.created).to.equal(3);\r\n    pm.expect(result.skipped).to.be.empty;\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/userxx/Desktop/import_3_valid.csv"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/import",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · POST /api/users/import · 2 валидные + 1 занятый username",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst result = pm.response.json();\r\n\r\n// 2. Создано 2, пропущена 1 строка\r\npm.test(\"created = 2, skipped = 1\", function () {\r\n    pm.expect(result.created).to.equal(2);\r\n    pm.expect(result.skipped).to.have.lengthOf(1);\r\n});\r\n\r\n// 3. В skipped есть номер строки и причина\r\npm.test(\"В skipped номер строки и причина\", function () {\r\n    const row = result.skipped[0];\r\n    pm.expect(row.line).to.equal(4);\r\n    pm.expect(row.reason).to.include(\"Username already taken\");\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/userxx/Desktop/import_2_valid_1_dup.csv"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/import",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · POST /api/users/import · строка без email → пропущена",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst result = pm.response.json();\r\n\r\n// 2. Ничего не создано, пропущена 1 строка\r\npm.test(\"created = 0, skipped = 1\", function () {\r\n    pm.expect(result.created).to.equal(0);\r\n    pm.expect(result.skipped).to.have.lengthOf(1);\r\n});\r\n\r\n// 3. Указаны номер строки и причина\r\npm.test(\"Строка 2 пропущена с причиной\", function () {\r\n    const row = result.skipped[0];\r\n    pm.expect(row.line).to.equal(2);\r\n    pm.expect(row.reason).to.not.be.empty;\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/userxx/Desktop/import_no_email.csv"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/import",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · POST /api/users/import · пустой файл → 400 или created = 0",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 200 или 400\r\npm.test(\"Статус 200 или 400\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([200, 400]);\r\n});\r\n\r\n// 2. Если 200, то ничего не создано\r\nif (pm.response.code === 200) {\r\n    const result = pm.response.json();\r\n    pm.test(\"created = 0\", function () {\r\n        pm.expect(result.created).to.equal(0);\r\n    });\r\n}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/userxx/Desktop/import_empty.csv"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/import",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · POST /api/users/import · не CSV (png) → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)\r\npm.test(\"Статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/userxx/Desktop/not_csv.png"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/import",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · POST /api/users/import · без поля file → 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)\r\npm.test(\"Статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": []
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/users/import",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-08 · POST /api/users/import · instructor → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{instructorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/userxx/Desktop/import_3_valid.csv"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/import",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "import"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-01 · GET /api/settings · admin → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// получить тело ответа\r\nconst s = pm.response.json();\r\n\r\n// 3. Есть все поля настроек\r\npm.test(\"Есть все поля настроек\", function () {\r\n    pm.expect(s).to.have.property(\"siteName\");\r\n    pm.expect(s).to.have.property(\"signupMode\");\r\n    pm.expect(s).to.have.property(\"defaultUserType\");\r\n    pm.expect(s).to.have.property(\"defaultGroupId\");\r\n    pm.expect(s).to.have.property(\"passwordMaxAgeDays\");\r\n    pm.expect(s).to.have.property(\"passwordChangeOnFirstLogin\");\r\n    pm.expect(s).to.have.property(\"lockAfterAttempts\");\r\n    pm.expect(s).to.have.property(\"lockMinutes\");\r\n    pm.expect(s).to.have.property(\"termsOfService\");\r\n    pm.expect(s).to.have.property(\"visibleUserFormat\");\r\n});\r\n\r\n// сохранить текущие настройки (пригодятся для PUT)\r\npm.environment.set(\"settingsBody\", JSON.stringify(s));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-01 · GET /api/settings · instructor → 403SET-01 · GET /api/settings · instructor → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{instructorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-01 · GET /api/settings · learner → 403",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 403 (доступ запрещён)\r\npm.test(\"Статус 403\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{learnerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PUT /api/settings · siteName пустой → 400",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// взять текущие настройки и поменять одно поле\r\nconst s = JSON.parse(pm.environment.get(\"settingsBody\"));\r\ns.siteName = \"\";\r\npm.environment.set(\"settingsTest\", JSON.stringify(s));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)\r\npm.test(\"Статус 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\n// 2. Ответ в формате problem+json\r\npm.test(\"Content-Type содержит problem+json\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");\r\n});\r\n\r\n// получить тело ответа (если тело пустое, json будет пустым объектом)\r\nlet json = {};\r\ntry {\r\n    json = pm.response.json();\r\n} catch (e) {\r\n    // тело не является JSON\r\n}\r\n\r\n// 3. В теле есть title, status и detail\r\npm.test(\"В теле есть title, status, detail\", function () {\r\n    pm.expect(json).to.have.property(\"title\");\r\n    pm.expect(json).to.have.property(\"status\");\r\n    pm.expect(json).to.have.property(\"detail\");\r\n});\r\n\r\n// 4. status совпадает с кодом ответа\r\npm.test(\"Status совпадает с кодом ответа\", function () {\r\n    pm.expect(json.status).to.equal(pm.response.code);\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsTest}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PUT /api/settings · то же тело, что в GET → 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// получить тело ответа\r\nconst s = pm.response.json();\r\n\r\n// 2. Ничего не поменялось\r\npm.test(\"Настройки не изменились\", function () {\r\n    pm.expect(s).to.eql(JSON.parse(pm.environment.get(\"settingsBody\")));\r\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsBody}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PUT /api/settings · lockMinutes = 0 → 400",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// взять текущие настройки и поменять одно поле",
+                      "const s = JSON.parse(pm.environment.get(\"settingsBody\"));",
+                      "s.lockMinutes = 0;",
+                      "pm.environment.set(\"settingsTest\", JSON.stringify(s));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)",
+                      "pm.test(\"Статус 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "// 2. Ответ в формате problem+json",
+                      "pm.test(\"Content-Type содержит problem+json\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                      "});",
+                      "",
+                      "// получить тело ответа (если тело пустое, json будет пустым объектом)",
+                      "let json = {};",
+                      "try {",
+                      "    json = pm.response.json();",
+                      "} catch (e) {",
+                      "    // тело не является JSON",
+                      "}",
+                      "",
+                      "// 3. В теле есть title, status и detail",
+                      "pm.test(\"В теле есть title, status, detail\", function () {",
+                      "    pm.expect(json).to.have.property(\"title\");",
+                      "    pm.expect(json).to.have.property(\"status\");",
+                      "    pm.expect(json).to.have.property(\"detail\");",
+                      "});",
+                      "",
+                      "// 4. status совпадает с кодом ответа",
+                      "pm.test(\"Status совпадает с кодом ответа\", function () {",
+                      "    pm.expect(json.status).to.equal(pm.response.code);",
+                      "});",
+                      "",
+                      "// защита: если сервер всё-таки принял неверные настройки (200), вернуть исходные",
+                      "if (pm.response.code === 200) {",
+                      "    pm.sendRequest({",
+                      "        url: pm.environment.get(\"userSvc\") + \"/api/settings\",",
+                      "        method: \"PUT\",",
+                      "        header: {",
+                      "            \"Content-Type\": \"application/json\",",
+                      "            \"Authorization\": \"Bearer \" + pm.environment.get(\"adminToken\")",
+                      "        },",
+                      "        body: { mode: \"raw\", raw: pm.environment.get(\"settingsBody\") }",
+                      "    });",
+                      "    console.log(\"ВНИМАНИЕ: сервер принял неверные настройки, исходные возвращены\");",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsTest}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PUT /api/settings · passwordMaxAgeDays = 5000 → 400",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// взять текущие настройки и поменять одно поле",
+                      "const s = JSON.parse(pm.environment.get(\"settingsBody\"));",
+                      "s.passwordMaxAgeDays = 5000;",
+                      "pm.environment.set(\"settingsTest\", JSON.stringify(s));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 400 (неверный запрос)",
+                      "pm.test(\"Статус 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "// 2. Ответ в формате problem+json",
+                      "pm.test(\"Content-Type содержит problem+json\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                      "});",
+                      "",
+                      "// получить тело ответа (если тело пустое, json будет пустым объектом)",
+                      "let json = {};",
+                      "try {",
+                      "    json = pm.response.json();",
+                      "} catch (e) {",
+                      "    // тело не является JSON",
+                      "}",
+                      "",
+                      "// 3. В теле есть title, status и detail",
+                      "pm.test(\"В теле есть title, status, detail\", function () {",
+                      "    pm.expect(json).to.have.property(\"title\");",
+                      "    pm.expect(json).to.have.property(\"status\");",
+                      "    pm.expect(json).to.have.property(\"detail\");",
+                      "});",
+                      "",
+                      "// 4. status совпадает с кодом ответа",
+                      "pm.test(\"Status совпадает с кодом ответа\", function () {",
+                      "    pm.expect(json.status).to.equal(pm.response.code);",
+                      "});",
+                      "",
+                      "// защита: если сервер всё-таки принял неверные настройки (200), вернуть исходные",
+                      "if (pm.response.code === 200) {",
+                      "    pm.sendRequest({",
+                      "        url: pm.environment.get(\"userSvc\") + \"/api/settings\",",
+                      "        method: \"PUT\",",
+                      "        header: {",
+                      "            \"Content-Type\": \"application/json\",",
+                      "            \"Authorization\": \"Bearer \" + pm.environment.get(\"adminToken\")",
+                      "        },",
+                      "        body: { mode: \"raw\", raw: pm.environment.get(\"settingsBody\") }",
+                      "    });",
+                      "    console.log(\"ВНИМАНИЕ: сервер принял неверные настройки, исходные возвращены\");",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsTest}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PUT /api/settings · defaultGroupId несуществующий → 404",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// взять текущие настройки и поменять одно поле",
+                      "const s = JSON.parse(pm.environment.get(\"settingsBody\"));",
+                      "s.defaultGroupId = \"00000000-0000-0000-0000-000000000000\";",
+                      "pm.environment.set(\"settingsTest\", JSON.stringify(s));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 404 (не найдено)",
+                      "pm.test(\"Статус 404\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "",
+                      "// 2. Ответ в формате problem+json",
+                      "pm.test(\"Content-Type содержит problem+json\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                      "});",
+                      "",
+                      "// получить тело ответа (если тело пустое, json будет пустым объектом)",
+                      "let json = {};",
+                      "try {",
+                      "    json = pm.response.json();",
+                      "} catch (e) {",
+                      "    // тело не является JSON",
+                      "}",
+                      "",
+                      "// 3. В теле есть title, status и detail",
+                      "pm.test(\"В теле есть title, status, detail\", function () {",
+                      "    pm.expect(json).to.have.property(\"title\");",
+                      "    pm.expect(json).to.have.property(\"status\");",
+                      "    pm.expect(json).to.have.property(\"detail\");",
+                      "});",
+                      "",
+                      "// 4. status совпадает с кодом ответа",
+                      "pm.test(\"Status совпадает с кодом ответа\", function () {",
+                      "    pm.expect(json.status).to.equal(pm.response.code);",
+                      "});",
+                      "",
+                      "// защита: если сервер всё-таки принял неверные настройки (200), вернуть исходные",
+                      "if (pm.response.code === 200) {",
+                      "    pm.sendRequest({",
+                      "        url: pm.environment.get(\"userSvc\") + \"/api/settings\",",
+                      "        method: \"PUT\",",
+                      "        header: {",
+                      "            \"Content-Type\": \"application/json\",",
+                      "            \"Authorization\": \"Bearer \" + pm.environment.get(\"adminToken\")",
+                      "        },",
+                      "        body: { mode: \"raw\", raw: pm.environment.get(\"settingsBody\") }",
+                      "    });",
+                      "    console.log(\"ВНИМАНИЕ: сервер принял неверные настройки, исходные возвращены\");",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsTest}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PATCH /api/settings · метод не поддерживается → 405",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус 405 (метод не поддерживается)",
+                      "pm.test(\"Статус 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "",
+                      "// 2. Ответ в формате problem+json",
+                      "pm.test(\"Content-Type содержит problem+json\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                      "});",
+                      "",
+                      "// получить тело ответа (если тело пустое, json будет пустым объектом)",
+                      "let json = {};",
+                      "try {",
+                      "    json = pm.response.json();",
+                      "} catch (e) {",
+                      "    // тело не является JSON",
+                      "}",
+                      "",
+                      "// 3. В теле есть title, status и detail",
+                      "pm.test(\"В теле есть title, status, detail\", function () {",
+                      "    pm.expect(json).to.have.property(\"title\");",
+                      "    pm.expect(json).to.have.property(\"status\");",
+                      "    pm.expect(json).to.have.property(\"detail\");",
+                      "});",
+                      "",
+                      "// 4. status совпадает с кодом ответа",
+                      "pm.test(\"Status совпадает с кодом ответа\", function () {",
+                      "    pm.expect(json.status).to.equal(pm.response.code);",
+                      "});",
+                      "",
+                      "// защита: если сервер всё-таки принял неверные настройки (200), вернуть исходные",
+                      "if (pm.response.code === 200) {",
+                      "    pm.sendRequest({",
+                      "        url: pm.environment.get(\"userSvc\") + \"/api/settings\",",
+                      "        method: \"PUT\",",
+                      "        header: {",
+                      "            \"Content-Type\": \"application/json\",",
+                      "            \"Authorization\": \"Bearer \" + pm.environment.get(\"adminToken\")",
+                      "        },",
+                      "        body: { mode: \"raw\", raw: pm.environment.get(\"settingsBody\") }",
+                      "    });",
+                      "    console.log(\"ВНИМАНИЕ: сервер принял неверные настройки, исходные возвращены\");",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsBody}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · PUT /api/settings · termsOfService = пробел → null",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// взять текущие настройки и поменять одно поле",
+                      "const s = JSON.parse(pm.environment.get(\"settingsBody\"));",
+                      "s.termsOfService = \" \";",
+                      "pm.environment.set(\"settingsTest\", JSON.stringify(s));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200",
+                      "pm.test(\"Статус 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "// получить тело ответа",
+                      "const s = pm.response.json();",
+                      "",
+                      "// 2. Пробел сохранён как null",
+                      "pm.test(\"termsOfService сохранён как null\", function () {",
+                      "    pm.expect(s.termsOfService).to.equal(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsTest}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "SET-02 · GET /api/auth/settings · termsOfService = null",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200",
+                      "pm.test(\"Статус 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "// получить тело ответа",
+                      "const s = pm.response.json();",
+                      "",
+                      "// 2. termsOfService = null",
+                      "pm.test(\"termsOfService = null\", function () {",
+                      "    pm.expect(s.termsOfService).to.equal(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/auth/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Teardown · PUT /api/settings · вернуть настройки по умолчанию",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// исходные настройки + значения по умолчанию из задания",
+                      "const s = JSON.parse(pm.environment.get(\"settingsBody\"));",
+                      "s.lockAfterAttempts = 3;",
+                      "s.lockMinutes = 30;",
+                      "s.signupMode = \"DIRECT\";",
+                      "s.termsOfService = null;",
+                      "s.defaultGroupId = null;",
+                      "pm.environment.set(\"settingsTeardown\", JSON.stringify(s));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200",
+                      "pm.test(\"Статус 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "// получить тело ответа",
+                      "const s = pm.response.json();",
+                      "",
+                      "// 2. Настройки возвращены",
+                      "pm.test(\"Настройки возвращены по умолчанию\", function () {",
+                      "    pm.expect(s.lockAfterAttempts).to.equal(3);",
+                      "    pm.expect(s.lockMinutes).to.equal(30);",
+                      "    pm.expect(s.signupMode).to.equal(\"DIRECT\");",
+                      "    pm.expect(s.termsOfService).to.equal(null);",
+                      "    pm.expect(s.defaultGroupId).to.equal(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{settingsTeardown}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{userSvc}}/api/settings",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users?search · несуществующий → []",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список пуст\r\npm.test(\"Список пуст\", function () {\r\n pm.expect(users).to.be.empty;\r\n });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users?search=xyz_нет_такого",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "xyz_нет_такого"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{adminToken}}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 course-service",
+      "item": []
+    },
+    {
+      "name": "03 notification-service",
+      "item": []
+    },
+    {
+      "name": "04 analytics-service",
+      "item": []
+    },
+    {
+      "name": "05 gamification-service",
+      "item": []
+    },
+    {
+      "name": "06 security",
+      "item": []
+    },
+    {
+      "name": "07 E2E",
+      "item": []
+    },
+    {
+      "name": "99 Teardown",
+      "item": []
+    }
+  ]
+}
