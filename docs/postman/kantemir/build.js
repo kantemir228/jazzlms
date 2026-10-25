@@ -1251,25 +1251,25 @@ const e2e = folder('E2E-7 · Событие проходит через все �
   'Шаги 4–6 чек-листа (повторная доставка через Kafka UI, остановка gamification-service, Grafana) выполняются вручную ' +
   'по docs/postman/kantemir/README.md.', [
   req('E2E-7 · 01 · POST /api/notifications · правило на COURSE_COMPLETED → 201', 'POST', N, { as: 'admin',
-    json: rule({ name: 'E2E-7 {{runId}}', subjectTemplate: 'E2E-7 {{runId}}: {{courseName}}' }), test: saveId('e2eRuleId') }),
+    json: rule({ name: 'E2E-7 {{runId}}', subjectTemplate: 'E2E-7 {{runId}}: {{courseName}}' }), test: saveId('e7RuleId') }),
   req('E2E-7 · 02 · POST /api/courses · курс из одного урока → 201', 'POST', `${B}/api/courses`, { as: 'instructor',
     json: { name: 'K e2e course {{runId}}', active: true },
     test: js(() => {
-      pm.environment.set('e2eCourseId', pm.response.json().id);
-      pm.environment.set('e2eCourseName', pm.response.json().name);
+      pm.environment.set('e7CourseId', pm.response.json().id);
+      pm.environment.set('e7CourseName', pm.response.json().name);
     }) }),
-  req('E2E-7 · 03 · POST /api/courses/{id}/units · урок → 201', 'POST', `${B}/api/courses/{{e2eCourseId}}/units`, {
-    as: 'instructor', form: unitForm('K e2e unit {{runId}}'), test: saveId('e2eUnitId') }),
-  req('E2E-7 · 04 · POST /api/courses/{id}/enrollments · записать ученика → 201', 'POST', `${B}/api/courses/{{e2eCourseId}}/enrollments`, {
+  req('E2E-7 · 03 · POST /api/courses/{id}/units · урок → 201', 'POST', `${B}/api/courses/{{e7CourseId}}/units`, {
+    as: 'instructor', form: unitForm('K e2e unit {{runId}}'), test: saveId('e7UnitId') }),
+  req('E2E-7 · 04 · POST /api/courses/{id}/enrollments · записать ученика → 201', 'POST', `${B}/api/courses/{{e7CourseId}}/enrollments`, {
     as: 'instructor', json: { userId: '{{learnerId}}' } }),
   req('E2E-7 · 05 · GET /api/gamification/me · запомнить очки → 200', 'GET', ME, { as: 'learner',
-    test: js(() => { pm.environment.set('e2eP0', pm.response.json().points); }) }),
-  req('E2E-7 · 06 · POST /api/units/{id}/start · открыть урок → 200', 'POST', `${B}/api/units/{{e2eUnitId}}/start`, { as: 'learner' }),
-  req('E2E-7 · 07 · POST /api/units/{id}/complete · урок и курс пройдены → 200', 'POST', `${B}/api/units/{{e2eUnitId}}/complete`, {
+    test: js(() => { pm.environment.set('e7P0', pm.response.json().points); }) }),
+  req('E2E-7 · 06 · POST /api/units/{id}/start · открыть урок → 200', 'POST', `${B}/api/units/{{e7UnitId}}/start`, { as: 'learner' }),
+  req('E2E-7 · 07 · POST /api/units/{id}/complete · урок и курс пройдены → 200', 'POST', `${B}/api/units/{{e7UnitId}}/complete`, {
     as: 'learner', json: {} }),
   req('E2E-7 · 08 · GET /api/analytics/timeline · три события курса за 10 с → 200', 'GET',
-    `${A}/timeline?userId={{learnerId}}&courseId={{e2eCourseId}}&size=50`, { as: 'admin',
-    pre: waitFor(`${A}/timeline?userId={{learnerId}}&courseId={{e2eCourseId}}&size=50`, 'adminToken',
+    `${A}/timeline?userId={{learnerId}}&courseId={{e7CourseId}}&size=50`, { as: 'admin',
+    pre: waitFor(`${A}/timeline?userId={{learnerId}}&courseId={{e7CourseId}}&size=50`, 'adminToken',
       page => ['UNIT_COMPLETED', 'COURSE_COMPLETED', 'CERTIFICATE_ISSUED'].every(t => page.items.some(i => i.type === t))),
     test: [...POLL_OK, ...js(() => {
       const types = pm.response.json().items.map(i => i.type);
@@ -1277,38 +1277,38 @@ const e2e = folder('E2E-7 · Событие проходит через все �
         ['UNIT_COMPLETED', 'COURSE_COMPLETED', 'CERTIFICATE_ISSUED'].forEach(t => pm.expect(types.filter(x => x === t), t).to.have.length(1)));
     })] }),
   req('E2E-7 · 09 · GET /api/notifications/history · письмо по новому правилу → 200', 'GET', `${N}/history`, { as: 'admin',
-    pre: waitFor(`${N}/history`, 'adminToken', list => list.some(m => m.ruleId === pm.environment.get('e2eRuleId'))),
+    pre: waitFor(`${N}/history`, 'adminToken', list => list.some(m => m.ruleId === pm.environment.get('e7RuleId'))),
     test: [...POLL_OK, ...js(() => {
-      const mails = pm.response.json().filter(m => m.ruleId === pm.environment.get('e2eRuleId'));
+      const mails = pm.response.json().filter(m => m.ruleId === pm.environment.get('e7RuleId'));
       pm.test('Ровно одно письмо, на email ученика', () => {
         pm.expect(mails).to.have.length(1);
         pm.expect(mails[0].recipientEmail).to.eql(pm.environment.get('learnerEmail'));
       });
       pm.test('Тема с названием курса', () =>
-        pm.expect(mails[0].subject).to.eql(`E2E-7 ${pm.environment.get('runId')}: ${pm.environment.get('e2eCourseName')}`));
+        pm.expect(mails[0].subject).to.eql(`E2E-7 ${pm.environment.get('runId')}: ${pm.environment.get('e7CourseName')}`));
     })] }),
   req('E2E-7 · 10 · GET /api/gamification/me · +15 +100 +50 → 200', 'GET', ME, { as: 'learner',
-    pre: waitFor(ME, 'learnerToken', me => me.points >= Number(pm.environment.get('e2eP0')) + 165),
+    pre: waitFor(ME, 'learnerToken', me => me.points >= Number(pm.environment.get('e7P0')) + 165),
     test: [...POLL_OK, ...js(() => {
-      pm.test('Ровно +165 очков', () => pm.expect(pm.response.json().points).to.eql(Number(pm.environment.get('e2eP0')) + 165));
-      pm.environment.set('e2ePoints', pm.response.json().points);
+      pm.test('Ровно +165 очков', () => pm.expect(pm.response.json().points).to.eql(Number(pm.environment.get('e7P0')) + 165));
+      pm.environment.set('e7Points', pm.response.json().points);
     })] }),
   req('E2E-7 · 11 · GET /api/gamification/leaderboard · ученик в рейтинге → 200', 'GET', `${G}/leaderboard?limit=50`, { as: 'learner',
     test: js(() => {
       const board = pm.response.json();
       pm.test('Ученик в рейтинге с теми же очками', () => {
         pm.expect(board.me.userId).to.eql(pm.environment.get('learnerId'));
-        pm.expect(board.me.score).to.eql(Number(pm.environment.get('e2ePoints')));
+        pm.expect(board.me.score).to.eql(Number(pm.environment.get('e7Points')));
       });
     }) }),
-  req('E2E-7 · 12 · DELETE /api/notifications/{id} · убрать правило → 204', 'DELETE', `${N}/{{e2eRuleId}}`, { as: 'admin' }),
+  req('E2E-7 · 12 · DELETE /api/notifications/{id} · убрать правило → 204', 'DELETE', `${N}/{{e7RuleId}}`, { as: 'admin' }),
 ]);
 
 // ======================================================================
 // 99 Teardown · Kantemir
 // ======================================================================
 
-const COURSE_VARS = ['kCourseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e2eCourseId'];
+const COURSE_VARS = ['kCourseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e7CourseId'];
 
 const teardown = folder('Kantemir',
   'Возвращает стенд как было: настройки геймификации по умолчанию, тестовые правила писем и курсы удалены.', [

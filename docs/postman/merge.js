@@ -15,6 +15,11 @@ const base = load('astra.postman_collection.json');
 
 // студент, файл в team/, [путь папок в его коллекции, номер общей папки, новое имя (необязательно)]
 const PARTS = [
+  ['Zhyldyz', 'zhyldyz.postman_collection.json', [
+    [['Zhyldyz_Course-Service'], '02', 'Courses, Categories, Enrollments (Zhyldyz)'],
+    [['07 E2E'], '07', 'E2E-4 · Жизненный цикл курса (Zhyldyz)'],
+    [['99 Teardown'], '99', 'Zhyldyz'],
+  ]],
   ['Tamara', 'tamara.postman_collection.json', [
     [['01 user-service', 'Users'], '01'],
   ]],
@@ -73,6 +78,8 @@ for (const [student, file, parts] of PARTS) {
     }
     const copy = JSON.parse(JSON.stringify(node));
     if (rename) copy.name = rename;
+    // авторизация, заданная автором на уровне всей его коллекции, при переносе папок иначе потерялась бы
+    if (source.auth && !copy.auth) copy.auth = source.auth;
     insertFolder(folderOf(to), copy);
   }
 }

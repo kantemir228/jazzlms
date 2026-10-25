@@ -9887,6 +9887,1159 @@
       "name": "02 course-service",
       "item": [
         {
+          "name": "Courses, Categories, Enrollments (Zhyldyz)",
+          "item": [
+            {
+              "name": "Categories",
+              "item": [
+                {
+                  "name": "Get Categories",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is an array\", function () {\n    const body = pm.response.json();\n    pm.expect(body).to.be.an(\"array\");\n});\n\npm.test(\"Categories have required fields\", function () {\n    const categories = pm.response.json();\n\n    categories.forEach(function (category) {\n        pm.expect(category).to.have.property(\"id\");\n        pm.expect(category).to.have.property(\"name\");\n        pm.expect(category).to.have.property(\"parentId\");\n    });\n});\n"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/categories",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "categories"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Category",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Category name is updated\", function () {\n    const body = pm.response.json();\n    pm.expect(body.name).to.eql(\"Zhyldyz_Test_Category_Updated\");\n});\n\npm.test(\"Response contains category ID\", function () {\n    const body = pm.response.json();\n    pm.expect(body.id).to.eql(\"81d09042-35be-456e-a47b-5e325d579b4e\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"id\": \"81d09042-35be-456e-a47b-5e325d579b4e\",\n  \"name\": \"Zhyldyz_Test_Category_Updated\",\n  \"parentId\": null,\n  \"price\": 0\n}\n",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/categories/81d09042-35be-456e-a47b-5e325d579b4e",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "categories",
+                        "81d09042-35be-456e-a47b-5e325d579b4e"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Nonexistent Category",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"id\": \"00000000-0000-0000-0000-000000000000\",\n  \"name\": \"Zhyldyz_Nonexistent_Category\",\n  \"parentId\": null,\n  \"price\": 0\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/categories/00000000-0000-0000-0000-000000000000",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "categories",
+                        "00000000-0000-0000-0000-000000000000"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Nonexistent Category",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/categories/00000000-0000-0000-0000-000000000000",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "categories",
+                        "00000000-0000-0000-0000-000000000000"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Existing Category",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 204\", function () {\n    pm.response.to.have.status(204);\n});\n\npm.test(\"Response body is empty\", function () {\n    pm.expect(pm.response.text()).to.be.empty;\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/categories/81d09042-35be-456e-a47b-5e325d579b4e",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "categories",
+                        "81d09042-35be-456e-a47b-5e325d579b4e"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Categories After Delete",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Deleted category is absent\", function () {\n    const categories = pm.response.json();\n    const deletedCategoryId = \"81d09042-35be-456e-a47b-5e325d579b4e\";\n\n    pm.expect(\n        categories.some(category => category.id === deletedCategoryId)\n    ).to.be.false;\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/categories",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "categories"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Courses",
+              "item": [
+                {
+                  "name": "Create Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n});\n\npm.test(\"Course name is correct\", function () {\n    const body = pm.response.json();\n    pm.expect(body.name).to.eql(\"Zhyldyz_Test_Course\");\n});\n\npm.test(\"Course has an ID\", function () {\n    const body = pm.response.json();\n    pm.expect(body.id).to.be.a(\"string\").and.not.empty;\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"id\": \"a2c7e610-4d83-4a92-9f51-8b6e3d2c1047\",\n  \"name\": \"Zhyldyz_Test_Course\",\n  \"code\": \"ZHYLDYZ-TEST-01\",\n  \"description\": \"Test course created via Postman\",\n  \"categoryId\": \"ca13550d-77bb-4071-8a08-19ad00f52e11\",\n  \"categoryName\": \"SQL\",\n  \"price\": 100,\n  \"capacity\": 10,\n  \"level\": \"Beginner\",\n  \"active\": true,\n  \"hiddenFromCatalog\": false,\n  \"sequential\": true,\n  \"learnersCount\": 0\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Course name is updated\", function () {\n    const body = pm.response.json();\n    pm.expect(body.name).to.eql(\"Zhyldyz_Test_Course_Updated\");\n});\n\npm.test(\"Course ID is correct\", function () {\n    const body = pm.response.json();\n    pm.expect(body.id).to.eql(\"cdaffbce-cf01-401d-a84c-629e221ffd1c\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PUT",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"id\": \"cdaffbce-cf01-401d-a84c-629e221ffd1c\",\n  \"name\": \"Zhyldyz_Test_Course_Updated\",\n  \"code\": \"ZHYLDYZ-TEST-01\",\n  \"description\": \"Updated test course via Postman\",\n  \"categoryId\": \"ca13550d-77bb-4071-8a08-19ad00f52e11\",\n  \"categoryName\": \"SQL\",\n  \"price\": 150,\n  \"capacity\": 10,\n  \"level\": \"Beginner\",\n  \"active\": true,\n  \"hiddenFromCatalog\": false,\n  \"sequential\": true,\n  \"learnersCount\": 0\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Existing Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 204\", function () {\n    pm.response.to.have.status(204);\n});\n\npm.test(\"Response body is empty\", function () {\n    pm.expect(pm.response.text()).to.be.empty;\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Nonexistent Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Error message mentions missing course\", function () {\n    const body = pm.response.json();\n    pm.expect(body.detail).to.include(\"Course not found\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/00000000-0000-0000-0000-000000000000",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "00000000-0000-0000-0000-000000000000"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Courses After Delete",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is an array\", function () {\n    pm.expect(pm.response.json()).to.be.an(\"array\");\n});\n\npm.test(\"Deleted course is absent\", function () {\n    const courses = pm.response.json();\n    const deletedCourseId = \"cdaffbce-cf01-401d-a84c-629e221ffd1c\";\n\n    pm.expect(\n        courses.some(course => course.id === deletedCourseId)\n    ).to.be.false;\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Nonexistent Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Error message mentions missing course\", function () {\n    const body = pm.response.json();\n    pm.expect(body.detail).to.include(\"Course not found\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/00000000-0000-0000-0000-000000000000",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "00000000-0000-0000-0000-000000000000"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Course Enrollments",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/enrollments",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "enrollments"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Course Stats",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is JSON\", function () {\n    pm.expect(() => pm.response.json()).to.not.throw();\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/stats",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "stats"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Course Report Users",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.json();\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/report/users",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "report",
+                        "users"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Course Report Overview",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is JSON\", function () {\n    pm.expect(pm.response.headers.get(\"Content-Type\"))\n        .to.include(\"application/json\");\n});\n\npm.test(\"Response time is less than 1500ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(1500);\n});\n\npm.test(\"Response body is an object\", function () {\n    const body = pm.response.json();\n    pm.expect(body).to.be.an(\"object\").and.not.an(\"array\");\n});\n\npm.test(\"Required overview fields exist\", function () {\n    const body = pm.response.json();\n\n    [\n        \"assignedLearners\",\n        \"completedLearners\",\n        \"learnersInProgress\",\n        \"notStarted\",\n        \"instructors\",\n        \"trainingSeconds\",\n        \"units\"\n    ].forEach(function (field) {\n        pm.expect(body).to.have.property(field);\n    });\n});\n\npm.test(\"Learner counts are consistent\", function () {\n    const body = pm.response.json();\n\n    pm.expect(body.assignedLearners).to.eql(\n        body.completedLearners +\n        body.learnersInProgress +\n        body.notStarted\n    );\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{json_web_token_1akb}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/report/overview",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "report",
+                        "overview"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Course Report Matrix",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.json();\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/report/matrix",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "report",
+                        "matrix"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Course Files",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is valid JSON\", function () {\n    pm.response.json();\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/files",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "files"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Enroll User in Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 409\", function () {\n    pm.response.to.have.status(409);\n});\n\npm.test(\"User already enrolled message is returned\", function () {\n    const body = pm.response.json();\n    pm.expect(body.detail).to.eql(\"User already enrolled\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-User-Id",
+                        "value": "7a94437a-3658-4f62-aebd-7f5b0985654d"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/enroll",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "enroll"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Duplicate Enrollment",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 409\", function () {\n    pm.response.to.have.status(409);\n});\n\npm.test(\"Response explains duplicate enrollment\", function () {\n    const body = pm.response.json();\n    pm.expect(body.detail).to.eql(\"User already enrolled\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userId\": \"368061d5-7101-4039-a00f-4ded5c92c111\",\n  \"role\": \"LEARNER\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/enrollments",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "enrollments"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Permanently Delete Non-Deleted Course",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Error explains deleted course was not found\", function () {\n    const body = pm.response.json();\n    pm.expect(body.detail).to.include(\"Deleted course not found\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/3fb7eb70-0702-49d4-b5d0-7dc0897836bf/permanent",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "3fb7eb70-0702-49d4-b5d0-7dc0897836bf",
+                        "permanent"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Course By ID",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response contains course ID and name\", function () {\n    const body = pm.response.json();\n    pm.expect(body).to.have.property(\"id\");\n    pm.expect(body).to.have.property(\"name\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Enrollments",
+              "item": [
+                {
+                  "name": "Get My Enrollments",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is an array\", function () {\n    const body = pm.response.json();\n    pm.expect(body).to.be.an(\"array\");\n});\n\npm.test(\"All enrollments have LEARNER role\", function () {\n    const body = pm.response.json();\n\n    body.forEach(function (item) {\n        pm.expect(item.role).to.eql(\"LEARNER\");\n    });\n});\n\npm.test(\"Response time is under 1500 ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(1500);\n});\n"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/enrollments/my?role=LEARNER",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "enrollments",
+                        "my"
+                      ],
+                      "query": [
+                        {
+                          "key": "role",
+                          "value": "LEARNER"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get My Enrollment Stats",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response time is under 1500 ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(1500);\n});\n\npm.test(\"Response is JSON\", function () {\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\n});\n\npm.test(\"Training seconds are valid\", function () {\n    const body = pm.response.json();\n    pm.expect(body).to.be.an(\"object\");\n\n    if (body.trainingSeconds !== undefined) {\n        pm.expect(body.trainingSeconds).to.be.a(\"number\");\n        pm.expect(body.trainingSeconds).to.be.at.least(0);\n    }\n});\n"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/enrollments/my/stats",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "enrollments",
+                        "my",
+                        "stats"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Enrollment Progress",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"progress\": 50\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/enrollments/871b18c5-84e9-4b0d-b733-6f7cc68c8d68/progress",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "enrollments",
+                        "871b18c5-84e9-4b0d-b733-6f7cc68c8d68",
+                        "progress"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Enrollment",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Response body contains error details\", function () {\n    const body = pm.response.json();\n\n    pm.expect(body.title).to.eql(\"Not Found\");\n    pm.expect(body.status).to.eql(404);\n    pm.expect(body.detail).to.include(\"Enrollment not found\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{instructorToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8080/api/enrollments/e8d226a5-89ae-429e-8fd6-e6dc391006b3",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8080",
+                      "path": [
+                        "api",
+                        "enrollments",
+                        "e8d226a5-89ae-429e-8fd6-e6dc391006b3"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get My Enrollments - Instructor Filter",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response is an array\", function () {\n    const body = pm.response.json();\n    pm.expect(body).to.be.an(\"array\");\n});\n\npm.test(\"All enrollments have INSTRUCTOR role\", function () {\n    const body = pm.response.json();\n\n    body.forEach(function (item) {\n        pm.expect(item.role).to.eql(\"INSTRUCTOR\");\n    });\n});\n\npm.test(\"Response time is under 1500 ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(1500);\n});\n"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:8082/api/enrollments/my?role=INSTRUCTOR",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "enrollments",
+                        "my"
+                      ],
+                      "query": [
+                        {
+                          "key": "role",
+                          "value": "INSTRUCTOR"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Enrollment - Nonexistent User",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "\npm.test(\"Status code is 404\", function () {\n    pm.response.to.have.status(404);\n});\n\npm.test(\"Error explains user was not found\", function () {\n    const body = pm.response.json();\n\n    pm.expect(body.status).to.eql(404);\n    pm.expect(body.detail).to.include(\"Active user not found\");\n});\n\npm.test(\"Response is problem+json\", function () {\n    pm.expect(pm.response.headers.get(\"Content-Type\"))\n        .to.include(\"application/problem+json\");\n});\n"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "\n{\n  \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"role\": \"LEARNER\"\n}\n",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/enrollments",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "enrollments"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Duplicate Enrollment",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 409\", function () {\n    pm.response.to.have.status(409);\n});\n\npm.test(\"Response time is under 1500 ms\", function () {\n    pm.expect(pm.response.responseTime).to.be.below(1500);\n});\n\npm.test(\"Response is problem+json\", function () {\n    pm.expect(pm.response.headers.get(\"Content-Type\"))\n        .to.include(\"application/problem+json\");\n});\n\npm.test(\"Error explains duplicate enrollment\", function () {\n    const body = pm.response.json();\n    pm.expect(body.status).to.eql(409);\n    pm.expect(body.title).to.eql(\"Conflict\");\n    pm.expect(body.detail).to.include(\"already enrolled\");\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"userId\": \"4c3c6e58-2513-4bf5-9f3b-605b929e3b85\",\n  \"role\": \"LEARNER\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/courses/cdaffbce-cf01-401d-a84c-629e221ffd1c/enrollments",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "courses",
+                        "cdaffbce-cf01-401d-a84c-629e221ffd1c",
+                        "enrollments"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Enrollment Progress",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\nconst body = pm.response.json();\n\npm.test(\"Progress is 100%\", function () {\n    pm.expect(body.progress).to.eql(100);\n});\n\npm.test(\"Enrollment is completed\", function () {\n    pm.expect(body.completedAt).to.not.be.null;\n    pm.expect(body.completedAt).to.be.a(\"string\");\n});\n\npm.test(\"Enrollment ID is correct\", function () {\n    pm.expect(body.id).to.eql(\n        \"9945339f-5acd-452a-b6fe-5103619cf35b\"\n    );\n});"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"progress\": 100\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8082/api/enrollments/9945339f-5acd-452a-b6fe-5103619cf35b/progress",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8082",
+                      "path": [
+                        "api",
+                        "enrollments",
+                        "9945339f-5acd-452a-b6fe-5103619cf35b",
+                        "progress"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Get User Certificates",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\nconst body = pm.response.json();\nconst courseId = \"cdaffbce-cf01-401d-a84c-629e221ffd1c\";\n\npm.test(\"Certificate exists for completed course\", function () {\n    pm.expect(body).to.be.an(\"array\");\n\n    const certificates = body.filter(\n        item => item.courseId === courseId\n    );\n\n    pm.expect(certificates.length).to.be.at.least(1);\n});\n\npm.test(\"Only one certificate exists for this course\", function () {\n    const certificates = body.filter(\n        item => item.courseId === courseId\n    );\n\n    pm.expect(certificates).to.have.lengthOf(1);\n});\n\npm.test(\"Certificate has an ID and code\", function () {\n    const certificate = body.find(\n        item => item.courseId === courseId\n    );\n\n    pm.expect(certificate).to.exist;\n    pm.expect(certificate.id).to.be.a(\"string\").and.not.empty;\n    pm.expect(certificate.code).to.be.a(\"string\").and.not.empty;\n});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:8082/api/certificates/user/4c3c6e58-2513-4bf5-9f3b-605b929e3b85",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8082",
+                  "path": [
+                    "api",
+                    "certificates",
+                    "user",
+                    "4c3c6e58-2513-4bf5-9f3b-605b929e3b85"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{json_web_token_1aig}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
           "name": "Units nazgul",
           "item": [
             {
@@ -44938,6 +46091,317 @@
           ]
         },
         {
+          "name": "E2E-4 · Жизненный цикл курса (Zhyldyz)",
+          "item": [
+            {
+              "name": "1 · Create Course",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/courses",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"E2E_Zhyldyz_Course\",\n  \"code\": \"{{e2eCourseCode}}\",\n  \"description\": \"E2E course lifecycle test\",\n  \"categoryId\": \"ca13550d-77bb-4071-8a08-19ad00f52e11\",\n  \"price\": 100,\n  \"capacity\": 10,\n  \"level\": \"Beginner\",\n  \"active\": true,\n  \"hiddenFromCatalog\": false,\n  \"sequential\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{json_web_token_1akb}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// уникальный код курса — чтобы повторный прогон не упирался в 409",
+                      "pm.environment.set(\"e2eCourseCode\", \"E2E-ZH-\" + Date.now());",
+                      "// если Setup не запускали — берём ученика по умолчанию",
+                      "if (!pm.environment.get(\"learnerId\")) {",
+                      "  pm.environment.set(\"learnerId\", \"368061d5-7101-4039-a00f-4ded5c92c111\");",
+                      "}"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const data = pm.response.json();",
+                      "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"Course ID is returned\", () => pm.expect(data.id).to.be.a(\"string\").and.not.empty);",
+                      "pm.environment.set(\"e2eCourseId\", data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "2 · Get Created Course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{json_web_token_1akb}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const data = pm.response.json();",
+                      "pm.test(\"Returned course ID matches created course\", () => pm.expect(data.id).to.eql(pm.environment.get(\"e2eCourseId\")));",
+                      "pm.test(\"Course name is correct\", () => pm.expect(data.name).to.eql(\"E2E_Zhyldyz_Course\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "3 · Update Created Course",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"E2E_Zhyldyz_Course_Updated\",\n  \"code\": \"{{e2eCourseCode}}\",\n  \"description\": \"E2E course lifecycle test updated\",\n  \"categoryId\": \"ca13550d-77bb-4071-8a08-19ad00f52e11\",\n  \"price\": 100,\n  \"capacity\": 10,\n  \"level\": \"Beginner\",\n  \"active\": true,\n  \"hiddenFromCatalog\": false,\n  \"sequential\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const data = pm.response.json();",
+                      "pm.test(\"Course name was updated\", () => pm.expect(data.name).to.eql(\"E2E_Zhyldyz_Course_Updated\"));",
+                      "pm.test(\"Course ID remains unchanged\", () => pm.expect(data.id).to.eql(pm.environment.get(\"e2eCourseId\")));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "4 · Enroll User",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/enrollments",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{learnerId}}\",\n  \"role\": \"LEARNER\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200 or 201\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                      "const data = pm.response.json();",
+                      "pm.test(\"Enrollment ID is returned\", () => pm.expect(data.id).to.be.a(\"string\").and.not.empty);",
+                      "pm.environment.set(\"e2eEnrollmentId\", data.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "5 · Verify Course Enrollments",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/enrollments"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const data = pm.response.json();",
+                      "const list = Array.isArray(data) ? data : (data.content || []);",
+                      "const uid = pm.environment.get(\"learnerId\");",
+                      "pm.test(\"Learner is in course enrollments\", () => {",
+                      "  pm.expect(list.some(e => e.userId === uid || (e.user && e.user.id === uid))).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "6 · Update Enrollment Progress → 100",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/enrollments/{{e2eEnrollmentId}}/progress",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"progress\": 100\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const b = pm.response.json();",
+                      "pm.test(\"Progress is 100\", () => pm.expect(b.progress).to.eql(100));",
+                      "pm.test(\"completedAt is set\", () => pm.expect(b.completedAt).to.be.a(\"string\").and.not.empty);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "7 · Verify Certificate",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/certificates/user/{{learnerId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const data = pm.response.json();",
+                      "const certificates = Array.isArray(data) ? data : [data];",
+                      "pm.test(\"Certificate exists for E2E course\", () => {",
+                      "  pm.expect(certificates.some(c => c.courseId === pm.environment.get(\"e2eCourseId\"))).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "8 · Verify Course After Completion",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const data = pm.response.json();",
+                      "pm.test(\"Course ID matches E2E course\", () => pm.expect(data.id).to.eql(pm.environment.get(\"e2eCourseId\")));",
+                      "pm.test(\"Course has updated name\", () => pm.expect(data.name).to.eql(\"E2E_Zhyldyz_Course_Updated\"));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "9 · Verify User Enrollment",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/enrollments/user/{{learnerId}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                      "const data = pm.response.json();",
+                      "const courseId = pm.environment.get(\"e2eCourseId\");",
+                      "const enrollment = data.find(e => e.course && e.course.id === courseId);",
+                      "pm.test(\"Enrollment for E2E course exists\", () => pm.expect(enrollment).to.exist);",
+                      "pm.test(\"Enrollment progress is 100%\", () => pm.expect(enrollment.progress).to.eql(100));",
+                      "pm.test(\"Course completion date exists\", () => pm.expect(enrollment.completedAt).to.be.a(\"string\").and.not.empty);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{json_web_token_1akb}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
           "name": "E2E-5 Ученик проходит курс и получает сертификат",
           "item": [
             {
@@ -46679,7 +48143,7 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eRuleId', pm.response.json().id);"
+                      "pm.environment.set('e7RuleId', pm.response.json().id);"
                     ]
                   }
                 }
@@ -46754,8 +48218,8 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eCourseId', pm.response.json().id);",
-                      "pm.environment.set('e2eCourseName', pm.response.json().name);"
+                      "pm.environment.set('e7CourseId', pm.response.json().id);",
+                      "pm.environment.set('e7CourseName', pm.response.json().name);"
                     ]
                   }
                 }
@@ -46830,7 +48294,7 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eUnitId', pm.response.json().id);"
+                      "pm.environment.set('e7UnitId', pm.response.json().id);"
                     ]
                   }
                 }
@@ -46843,7 +48307,7 @@
                     "value": "Bearer {{instructorToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/units",
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}/units",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
@@ -46924,7 +48388,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/enrollments",
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}/enrollments",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"userId\": \"{{learnerId}}\"\n}"
@@ -46982,7 +48446,7 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eP0', pm.response.json().points); "
+                      "pm.environment.set('e7P0', pm.response.json().points); "
                     ]
                   }
                 }
@@ -47061,7 +48525,7 @@
                     "value": "Bearer {{learnerToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/units/{{e2eUnitId}}/start"
+                "url": "{{baseUrl}}/api/units/{{e7UnitId}}/start"
               }
             },
             {
@@ -47131,7 +48595,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/units/{{e2eUnitId}}/complete",
+                "url": "{{baseUrl}}/api/units/{{e7UnitId}}/complete",
                 "body": {
                   "mode": "raw",
                   "raw": "{}"
@@ -47159,7 +48623,7 @@
                       "    });",
                       "  })();",
                       "}",
-                      "poll(\"{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e2eCourseId}}&size=50\", \"adminToken\", page => ['UNIT_COMPLETED', 'COURSE_COMPLETED', 'CERTIFICATE_ISSUED'].every(t => page.items.some(i => i.type === t)), 10000, (ok, ms) => {",
+                      "poll(\"{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e7CourseId}}&size=50\", \"adminToken\", page => ['UNIT_COMPLETED', 'COURSE_COMPLETED', 'CERTIFICATE_ISSUED'].every(t => page.items.some(i => i.type === t)), 10000, (ok, ms) => {",
                       "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                       "",
                       "});"
@@ -47231,7 +48695,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e2eCourseId}}&size=50"
+                "url": "{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e7CourseId}}&size=50"
               }
             },
             {
@@ -47255,7 +48719,7 @@
                       "    });",
                       "  })();",
                       "}",
-                      "poll(\"{{baseUrl}}/api/notifications/history\", \"adminToken\", list => list.some(m => m.ruleId === pm.environment.get('e2eRuleId')), 10000, (ok, ms) => {",
+                      "poll(\"{{baseUrl}}/api/notifications/history\", \"adminToken\", list => list.some(m => m.ruleId === pm.environment.get('e7RuleId')), 10000, (ok, ms) => {",
                       "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                       "",
                       "});"
@@ -47312,13 +48776,13 @@
                       "}",
                       "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
                       "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
-                      "const mails = pm.response.json().filter(m => m.ruleId === pm.environment.get('e2eRuleId'));",
+                      "const mails = pm.response.json().filter(m => m.ruleId === pm.environment.get('e7RuleId'));",
                       "pm.test('Ровно одно письмо, на email ученика', () => {",
                       "  pm.expect(mails).to.have.length(1);",
                       "  pm.expect(mails[0].recipientEmail).to.eql(pm.environment.get('learnerEmail'));",
                       "});",
                       "pm.test('Тема с названием курса', () =>",
-                      "  pm.expect(mails[0].subject).to.eql(`E2E-7 ${pm.environment.get('runId')}: ${pm.environment.get('e2eCourseName')}`));"
+                      "  pm.expect(mails[0].subject).to.eql(`E2E-7 ${pm.environment.get('runId')}: ${pm.environment.get('e7CourseName')}`));"
                     ]
                   }
                 }
@@ -47355,7 +48819,7 @@
                       "    });",
                       "  })();",
                       "}",
-                      "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.points >= Number(pm.environment.get('e2eP0')) + 165, 10000, (ok, ms) => {",
+                      "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.points >= Number(pm.environment.get('e7P0')) + 165, 10000, (ok, ms) => {",
                       "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                       "",
                       "});"
@@ -47412,8 +48876,8 @@
                       "}",
                       "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
                       "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
-                      "pm.test('Ровно +165 очков', () => pm.expect(pm.response.json().points).to.eql(Number(pm.environment.get('e2eP0')) + 165));",
-                      "pm.environment.set('e2ePoints', pm.response.json().points);"
+                      "pm.test('Ровно +165 очков', () => pm.expect(pm.response.json().points).to.eql(Number(pm.environment.get('e7P0')) + 165));",
+                      "pm.environment.set('e7Points', pm.response.json().points);"
                     ]
                   }
                 }
@@ -47483,7 +48947,7 @@
                       "const board = pm.response.json();",
                       "pm.test('Ученик в рейтинге с теми же очками', () => {",
                       "  pm.expect(board.me.userId).to.eql(pm.environment.get('learnerId'));",
-                      "  pm.expect(board.me.score).to.eql(Number(pm.environment.get('e2ePoints')));",
+                      "  pm.expect(board.me.score).to.eql(Number(pm.environment.get('e7Points')));",
                       "});"
                     ]
                   }
@@ -47563,7 +49027,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/notifications/{{e2eRuleId}}"
+                "url": "{{baseUrl}}/api/notifications/{{e7RuleId}}"
               }
             }
           ]
@@ -47573,6 +49037,79 @@
     {
       "name": "99 Teardown",
       "item": [
+        {
+          "name": "Zhyldyz",
+          "item": [
+            {
+              "name": "E2E · Delete course",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{json_web_token_1akb}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Course deleted (200/204)\", () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "E2E · Permanently delete course",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/permanent",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{json_web_token_1akb}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Course permanently deleted (200/204)\", () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{json_web_token_1aig}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
         {
           "name": "Alina",
           "item": [
@@ -48930,7 +50467,7 @@
               }
             },
             {
-              "name": "TD-K · DELETE /api/courses/{e2eCourseId} · в корзину → 204",
+              "name": "TD-K · DELETE /api/courses/{e7CourseId} · в корзину → 204",
               "event": [
                 {
                   "listen": "test",
@@ -48992,11 +50529,11 @@
                     "value": "Bearer {{instructorToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}"
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}"
               }
             },
             {
-              "name": "TD-K · DELETE /api/courses/{e2eCourseId}/permanent · навсегда → 204",
+              "name": "TD-K · DELETE /api/courses/{e7CourseId}/permanent · навсегда → 204",
               "event": [
                 {
                   "listen": "test",
@@ -49058,7 +50595,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/permanent"
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}/permanent"
               }
             }
           ]
@@ -49154,6 +50691,14 @@
     }
   ],
   "variable": [
+    {
+      "key": "json_web_token_1akb",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_1aig",
+      "secret": true
+    },
     {
       "key": "bearer_token_14lb",
       "secret": true

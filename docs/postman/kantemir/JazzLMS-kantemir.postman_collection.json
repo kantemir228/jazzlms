@@ -21040,7 +21040,7 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eRuleId', pm.response.json().id);"
+                      "pm.environment.set('e7RuleId', pm.response.json().id);"
                     ]
                   }
                 }
@@ -21115,8 +21115,8 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eCourseId', pm.response.json().id);",
-                      "pm.environment.set('e2eCourseName', pm.response.json().name);"
+                      "pm.environment.set('e7CourseId', pm.response.json().id);",
+                      "pm.environment.set('e7CourseName', pm.response.json().name);"
                     ]
                   }
                 }
@@ -21191,7 +21191,7 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eUnitId', pm.response.json().id);"
+                      "pm.environment.set('e7UnitId', pm.response.json().id);"
                     ]
                   }
                 }
@@ -21204,7 +21204,7 @@
                     "value": "Bearer {{instructorToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/units",
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}/units",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
@@ -21285,7 +21285,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/enrollments",
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}/enrollments",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"userId\": \"{{learnerId}}\"\n}"
@@ -21343,7 +21343,7 @@
                       "  }",
                       "}",
                       "}",
-                      "pm.environment.set('e2eP0', pm.response.json().points); "
+                      "pm.environment.set('e7P0', pm.response.json().points); "
                     ]
                   }
                 }
@@ -21422,7 +21422,7 @@
                     "value": "Bearer {{learnerToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/units/{{e2eUnitId}}/start"
+                "url": "{{baseUrl}}/api/units/{{e7UnitId}}/start"
               }
             },
             {
@@ -21492,7 +21492,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{baseUrl}}/api/units/{{e2eUnitId}}/complete",
+                "url": "{{baseUrl}}/api/units/{{e7UnitId}}/complete",
                 "body": {
                   "mode": "raw",
                   "raw": "{}"
@@ -21520,7 +21520,7 @@
                       "    });",
                       "  })();",
                       "}",
-                      "poll(\"{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e2eCourseId}}&size=50\", \"adminToken\", page => ['UNIT_COMPLETED', 'COURSE_COMPLETED', 'CERTIFICATE_ISSUED'].every(t => page.items.some(i => i.type === t)), 10000, (ok, ms) => {",
+                      "poll(\"{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e7CourseId}}&size=50\", \"adminToken\", page => ['UNIT_COMPLETED', 'COURSE_COMPLETED', 'CERTIFICATE_ISSUED'].every(t => page.items.some(i => i.type === t)), 10000, (ok, ms) => {",
                       "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                       "",
                       "});"
@@ -21592,7 +21592,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e2eCourseId}}&size=50"
+                "url": "{{baseUrl}}/api/analytics/timeline?userId={{learnerId}}&courseId={{e7CourseId}}&size=50"
               }
             },
             {
@@ -21616,7 +21616,7 @@
                       "    });",
                       "  })();",
                       "}",
-                      "poll(\"{{baseUrl}}/api/notifications/history\", \"adminToken\", list => list.some(m => m.ruleId === pm.environment.get('e2eRuleId')), 10000, (ok, ms) => {",
+                      "poll(\"{{baseUrl}}/api/notifications/history\", \"adminToken\", list => list.some(m => m.ruleId === pm.environment.get('e7RuleId')), 10000, (ok, ms) => {",
                       "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                       "",
                       "});"
@@ -21673,13 +21673,13 @@
                       "}",
                       "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
                       "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
-                      "const mails = pm.response.json().filter(m => m.ruleId === pm.environment.get('e2eRuleId'));",
+                      "const mails = pm.response.json().filter(m => m.ruleId === pm.environment.get('e7RuleId'));",
                       "pm.test('Ровно одно письмо, на email ученика', () => {",
                       "  pm.expect(mails).to.have.length(1);",
                       "  pm.expect(mails[0].recipientEmail).to.eql(pm.environment.get('learnerEmail'));",
                       "});",
                       "pm.test('Тема с названием курса', () =>",
-                      "  pm.expect(mails[0].subject).to.eql(`E2E-7 ${pm.environment.get('runId')}: ${pm.environment.get('e2eCourseName')}`));"
+                      "  pm.expect(mails[0].subject).to.eql(`E2E-7 ${pm.environment.get('runId')}: ${pm.environment.get('e7CourseName')}`));"
                     ]
                   }
                 }
@@ -21716,7 +21716,7 @@
                       "    });",
                       "  })();",
                       "}",
-                      "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.points >= Number(pm.environment.get('e2eP0')) + 165, 10000, (ok, ms) => {",
+                      "poll(\"{{baseUrl}}/api/gamification/me\", \"learnerToken\", me => me.points >= Number(pm.environment.get('e7P0')) + 165, 10000, (ok, ms) => {",
                       "  pm.environment.set('pollOk', ok); pm.environment.set('pollMs', ms);",
                       "",
                       "});"
@@ -21773,8 +21773,8 @@
                       "}",
                       "pm.test(`Событие обработано (ждали ${pm.environment.get('pollMs')} мс, лимит 10 с)`, () =>",
                       "  pm.expect(pm.environment.get('pollOk')).to.eql(true));",
-                      "pm.test('Ровно +165 очков', () => pm.expect(pm.response.json().points).to.eql(Number(pm.environment.get('e2eP0')) + 165));",
-                      "pm.environment.set('e2ePoints', pm.response.json().points);"
+                      "pm.test('Ровно +165 очков', () => pm.expect(pm.response.json().points).to.eql(Number(pm.environment.get('e7P0')) + 165));",
+                      "pm.environment.set('e7Points', pm.response.json().points);"
                     ]
                   }
                 }
@@ -21844,7 +21844,7 @@
                       "const board = pm.response.json();",
                       "pm.test('Ученик в рейтинге с теми же очками', () => {",
                       "  pm.expect(board.me.userId).to.eql(pm.environment.get('learnerId'));",
-                      "  pm.expect(board.me.score).to.eql(Number(pm.environment.get('e2ePoints')));",
+                      "  pm.expect(board.me.score).to.eql(Number(pm.environment.get('e7Points')));",
                       "});"
                     ]
                   }
@@ -21924,7 +21924,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/notifications/{{e2eRuleId}}"
+                "url": "{{baseUrl}}/api/notifications/{{e7RuleId}}"
               }
             }
           ]
@@ -22882,7 +22882,7 @@
               }
             },
             {
-              "name": "TD-K · DELETE /api/courses/{e2eCourseId} · в корзину → 204",
+              "name": "TD-K · DELETE /api/courses/{e7CourseId} · в корзину → 204",
               "event": [
                 {
                   "listen": "test",
@@ -22944,11 +22944,11 @@
                     "value": "Bearer {{instructorToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}"
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}"
               }
             },
             {
-              "name": "TD-K · DELETE /api/courses/{e2eCourseId}/permanent · навсегда → 204",
+              "name": "TD-K · DELETE /api/courses/{e7CourseId}/permanent · навсегда → 204",
               "event": [
                 {
                   "listen": "test",
@@ -23010,7 +23010,7 @@
                     "value": "Bearer {{adminToken}}"
                   }
                 ],
-                "url": "{{baseUrl}}/api/courses/{{e2eCourseId}}/permanent"
+                "url": "{{baseUrl}}/api/courses/{{e7CourseId}}/permanent"
               }
             },
             {
