@@ -25,6 +25,22 @@ ID проверки — имя запроса в коллекции `docs/postma
 | 14 | gamification | Профиль несуществующего пользователя → 200 вместо 404 | низкая |
 | 15 | analytics | В `/summary` нет `signups` и `enrollments` из §5.2 | низкая |
 
+## Сверка с Issues команды (25.10.2026)
+
+Часть дефектов команда уже завела — их не дублируем:
+
+| № здесь | Что делать | Почему |
+|---|---|---|
+| 7 | **не заводить** | Это и есть #10 Astra («POST-эндпоинты возвращают 500 вместо 400/415 при некорректном теле») |
+| 8 | **не заводить** | Уже есть #2 Ainura (отказы gateway 401/403 без тела, problem+json и WWW-Authenticate) и его дубль #17 |
+| 5 | **комментарий в #3** | #3 Ainura — «невалидный UUID в пути → 500»; gamification `/users/abc` — ещё один сервис с той же ошибкой |
+| 3, 6 | завести, со ссылкой на #10 | та же причина, что #10, но в notification и gamification — чинить в других сервисах |
+| 4 | завести, со ссылкой на #9 | как #9 Tamara (невалидный enum → 500), но в analytics |
+| 1, 2, 9–15 | завести | в Issues команды их нет |
+
+Итого новых Issues — 12: №1, 2, 3, 4, 6, 9, 10, 11, 12, 13, 14, 15. В заголовке каждого — ID проверки.
+С `strictGatewayErrors = false` (договорённость команды) проверки формата ответов gateway в SEC-06 и SEC-07 пропускаются: это #2.
+
 Номера 3–7 — одна причина в четырёх сервисах: в `GlobalExceptionHandler` нет обработчиков
 `HttpMessageNotReadableException` (тело не читается) и `MethodArgumentTypeMismatchException`
 (параметр не того типа), поэтому они попадают в `@ExceptionHandler(Exception.class)` → 500.
@@ -71,6 +87,8 @@ curl -i http://localhost:8081/api/users -H "Authorization: Bearer abc.def.ghi"
 
 ## 3. notification-service: неизвестный eventType или тело не JSON → 500 вместо 400
 
+> Связано с #10 — та же причина в user-service.
+
 **Проверка:** `NTF-05 · eventType = XXX → 400`, `NTF-05 · тело не JSON → 400`, `NEG-NTF · N8` · **Серьёзность:** средняя
 
 **Шаги**
@@ -88,6 +106,8 @@ curl -i -X POST http://localhost:8080/api/notifications -H "Authorization: Beare
 
 ## 4. analytics-service: timeline?type=XXX → 500 вместо 400
 
+> Связано с #9 (Tamara: невалидный userType → 500) — та же причина в user-service.
+
 **Проверка:** `ANL-02 · GET /api/analytics/timeline?type=XXX · неизвестный тип → 400` · **Серьёзность:** средняя
 
 **Шаги**
@@ -103,6 +123,8 @@ curl -i "http://localhost:8080/api/analytics/timeline?type=XXX" -H "Authorizatio
 ---
 
 ## 5. gamification-service: GET /api/gamification/users/abc → 500 вместо 400
+
+> Не отдельное Issue, а **комментарий в #3** — та же ошибка, ещё один сервис.
 
 **Проверка:** `GAM-06 · невалидный UUID abc → 400`, `NEG-GAM · N6` · **Серьёзность:** средняя
 
@@ -120,6 +142,8 @@ curl -i http://localhost:8080/api/gamification/users/abc -H "Authorization: Bear
 
 ## 6. gamification-service: PUT /api/gamification/settings с телом не JSON → 500 вместо 400
 
+> Связано с #10 — та же причина в user-service.
+
 **Проверка:** `NEG-GAM · N8 · PUT /api/gamification/settings … · тело не JSON → 400` · **Серьёзность:** средняя
 
 **Шаги**
@@ -135,6 +159,8 @@ curl -i -X PUT http://localhost:8080/api/gamification/settings -H "Authorization
 ---
 
 ## 7. user-service: табуляция внутри строки JSON → 500 вместо 400
+
+> **Уже заведено: #10** (Astra). Здесь — для полноты картины по четырём сервисам.
 
 **Нашла:** Astra · **Проверка:** вручную · **Серьёзность:** средняя
 
@@ -154,6 +180,8 @@ printf '{ "username": "admin\t", "password": "admin123" }' | curl -i -X POST htt
 ---
 
 ## 8. api-gateway: отказ 401/403 без тела и без заголовка WWW-Authenticate
+
+> **Уже заведено: #2** (Ainura), дубль — #17. Новое не заводим.
 
 **Проверка:** `SEC-07 · отказ gateway без токена в стандартном формате → 401` · **Серьёзность:** средняя
 

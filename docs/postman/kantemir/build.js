@@ -36,8 +36,12 @@ function req(name, method, url, opt = {}) {
   if (opt.form) request.body = { mode: 'formdata', formdata: opt.form };
   const event = [];
   if (opt.pre) event.push({ listen: 'prerequest', script: { type: 'text/javascript', exec: [].concat(...opt.pre) } });
-  // §1.6: у каждого запроса своя вкладка Tests — общие проверки §1.3 и следом собственные проверки запроса
-  event.push({ listen: 'test', script: { type: 'text/javascript', exec: [...COMMON, ...[].concat(...(opt.test || []))] } });
+  // §1.6: у каждого запроса своя вкладка Tests — общие проверки §1.3 и следом собственные проверки запроса.
+  // gatewayError: ответ формирует сам gateway; при strictGatewayErrors = false (договорённость команды, Issue #2)
+  // проверки его формата пропускаются — код ответа проверяется всегда.
+  const gw = opt.gatewayError ? "pm.environment.get('strictGatewayErrors') === 'false'" : 'false';
+  event.push({ listen: 'test', script: { type: 'text/javascript',
+    exec: [`const gatewayFormatSkip = ${gw};`, ...COMMON, ...[].concat(...(opt.test || []))] } });
   return { name, event, request };
 }
 
@@ -81,19 +85,19 @@ const COMMON = ['{', ...js(() => {
         }
       }
       if (expected >= 400 && text.length) {
-        pm.test('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));
+        (gatewayFormatSkip ? pm.test.skip : pm.test)('Ошибка в формате application/problem+json', () => pm.expect(ct).to.include('application/problem+json'));
         // Валидность проверяем строгим JSON.parse: pm.response.json() в Postman прощает, например,
         // перенос строки внутри строки, а Newman — нет; без этого Postman и Newman видели бы дефект по-разному.
-        pm.test('Тело ошибки — валидный JSON', () => pm.expect(() => JSON.parse(text)).to.not.throw());
+        (gatewayFormatSkip ? pm.test.skip : pm.test)('Тело ошибки — валидный JSON', () => pm.expect(() => JSON.parse(text)).to.not.throw());
         // поля читаем и из невалидного JSON (управляющие символы заменяем пробелами) — одинаково в обоих
         let err = {};
         try { err = JSON.parse(text.replace(/[\u0000-\u001f]/g, ' ')); } catch (e) { err = {}; }
-        pm.test('В ошибке есть title, status, detail', () => {
+        (gatewayFormatSkip ? pm.test.skip : pm.test)('В ошибке есть title, status, detail', () => {
           pm.expect(err.title, 'title').to.be.a('string');
           pm.expect(err.status, 'status').to.eql(code);
           pm.expect(err.detail, 'detail').to.be.a('string').and.not.empty;
         });
-        pm.test('detail без stack trace, имён классов и сообщений парсера', () => {
+        (gatewayFormatSkip ? pm.test.skip : pm.test)('detail без stack trace, имён классов и сообщений парсера', () => {
           pm.expect(err.detail || '').to.not.match(
             /Exception|\tat |kz\.jazz\.|org\.springframework|\[Source:|line: \d+, column: \d+|Unable to deserialize/);
         });
@@ -1212,13 +1216,15 @@ const security = folder('06 security',
       pm.test('Остальные прошли (200)', () => pm.expect(codes['200'] || 0).to.be.above(0));
       // сам этот запрос ушёл через 3 с — лимит восстановился, поэтому 200 (проверка в общих тестах)
     }) }),
-  req('SEC-06 · GET /api/nothing · с токеном → 404', 'GET', `${B}/api/nothing`, { as: 'admin' }),
+  req('SEC-06 · GET /api/nothing · с токеном → 404', 'GET', `${B}/api/nothing`, { as: 'admin', gatewayError: true }),
   req('SEC-06 · GET /api/nothing · без токена → 401', 'GET', `${B}/api/nothing`),
   req('SEC-07 · GET /api/courses · отказ gateway без токена в стандартном формате → 401', 'GET', `${B}/api/courses`, {
+    gatewayError: true,
     test: js(() => {
-      // N1 из §1.4: 401 должен приходить с WWW-Authenticate: Bearer и телом problem+json, как у сервисов
-      pm.test('Заголовок WWW-Authenticate: Bearer', () => pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));
-      pm.test('Тело application/problem+json', () =>
+      // N1 из §1.4: 401 должен приходить с WWW-Authenticate: Bearer и телом problem+json, как у сервисов (Issue #2)
+      const check = gatewayFormatSkip ? pm.test.skip : pm.test;
+      check('Заголовок WWW-Authenticate: Bearer', () => pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer'));
+      check('Тело application/problem+json', () =>
         pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/problem+json'));
     }) }),
 ]);
@@ -1293,7 +1299,7 @@ const e2e = folder('E2E-7 · Событие проходит через все �
 const COURSE_VARS = ['courseId', 'ntfCourseId', 'ntfCourse2Id', 'anlCourseId', 'gamCourseId', 'gamTestCourseId', 'e2eCourseId'];
 
 const teardown = folder('Kantemir',
-  'Возвращает стенд как было: настройки геймификации по умолчанию, тестовые правила писем, курсы и ученик удалены.', [
+  'Возвращает стенд как было: настройки геймификации по умолчанию, тестовые правила писем и курсы удалены.', [
   req('TD-K · POST /api/gamification/settings/reset · настройки по умолчанию → 200', 'POST', `${G}/settings/reset`, { as: 'admin' }),
   req('TD-K · GET /api/notifications · тестовых правил не осталось → 200', 'GET', N, { as: 'admin',
     pre: js(() => {
@@ -1314,8 +1320,10 @@ const teardown = folder('Kantemir',
     req(`TD-K · DELETE /api/courses/{${v}} · в корзину → 204`, 'DELETE', `${B}/api/courses/{{${v}}}`, { as: 'instructor' }),
     req(`TD-K · DELETE /api/courses/{${v}}/permanent · навсегда → 204`, 'DELETE', `${B}/api/courses/{{${v}}}/permanent`, { as: 'admin' }),
   ]),
-  req('TD-K · DELETE /api/users/{learnerId} · ученик → 204', 'DELETE', `${B}/api/users/{{learnerId}}`, { as: 'admin' }),
 ]);
+
+// Ученика удаляет тот, кто его создал: в общей коллекции — TD-01 Astra, в отдельной — этот запрос.
+const soloTeardown = req('TD-K · DELETE /api/users/{learnerId} · ученик → 204', 'DELETE', `${B}/api/users/{{learnerId}}`, { as: 'admin' });
 
 // ======================================================================
 
@@ -1343,7 +1351,7 @@ if (require.main === module) {
       folder('00 Setup', 'Логины и данные для тестов.', [...soloLogins.item, ...kSetup.item]),
       notification, analytics, gamification, security,
       folder('07 E2E', 'Сквозные сценарии.', [e2e]),
-      folder('99 Teardown', 'Уборка после прогона.', [teardown]),
+      folder('99 Teardown', 'Уборка после прогона.', [{ ...teardown, item: [...teardown.item, soloTeardown] }]),
     ],
   };
   const out = path.join(__dirname, 'JazzLMS-kantemir.postman_collection.json');
