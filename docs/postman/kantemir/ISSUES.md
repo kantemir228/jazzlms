@@ -25,6 +25,19 @@ ID проверки — имя запроса в коллекции `docs/postma
 | 14 | gamification | Профиль несуществующего пользователя → 200 вместо 404 | низкая |
 | 15 | analytics | В `/summary` нет `signups` и `enrollments` из §5.2 | низкая |
 
+## Опубликовано (25.10.2026)
+
+| № здесь | Issue | № здесь | Issue |
+|---|---|---|---|
+| 1 | nuta312/jazzlms#27 | 10 | nuta312/jazzlms#33 |
+| 2 | nuta312/jazzlms#28 | 11 | nuta312/jazzlms#34 |
+| 3 | nuta312/jazzlms#29 | 12 | nuta312/jazzlms#35 |
+| 4 | nuta312/jazzlms#30 | 13 | nuta312/jazzlms#36 |
+| 6 | nuta312/jazzlms#31 | 14 | nuta312/jazzlms#37 |
+| 9 | nuta312/jazzlms#32 | 15 | nuta312/jazzlms#38 |
+
+№5 — [комментарий в #3](https://github.com/nuta312/jazzlms/issues/3#issuecomment-6397511237); №7 — это #10; №8 — это #2.
+
 ## Сверка с Issues команды (25.10.2026)
 
 Часть дефектов команда уже завела — их не дублируем:
